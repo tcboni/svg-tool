@@ -16,10 +16,10 @@
         --line-strong: rgba(255, 255, 255, 0.14);
         --text: #f3f5f8;
         --muted: #8a92a1;
-        --accent: #8b5cf6;
-        --accent-2: #20c7dd;
+        --accent: #a1a1aa;
+        --accent-2: #f3f4f6;
         --danger: #ff627f;
-        --good: #4ade80;
+        --good: #ffffff;
         --shadow: none;
         --radius: 8px;
         font-family:
@@ -112,10 +112,10 @@
         border-radius: 6px;
         background: linear-gradient(
           135deg,
-          rgba(139, 92, 246, 0.95),
-          rgba(32, 199, 221, 0.85)
+          rgba(244, 244, 245, 0.95),
+          rgba(113, 113, 122, 0.85)
         );
-        color: white;
+        color: #0d1118;
         font-size: 13px;
         font-weight: 850;
         letter-spacing: -0.06em;
@@ -172,7 +172,7 @@
 
       .btn:hover,
       .file-btn:hover {
-        border-color: rgba(124, 92, 255, 0.65);
+        border-color: rgba(255, 255, 255, 0.38);
         background: #262d3b;
       }
 
@@ -215,7 +215,7 @@
 
       .icon-btn:hover {
         color: var(--text);
-        border-color: rgba(124, 92, 255, 0.65);
+        border-color: rgba(255, 255, 255, 0.38);
         background: #262d3b;
       }
 
@@ -293,9 +293,6 @@
       [data-tip]::after {
         content: attr(data-tip);
         position: absolute;
-        left: 50%;
-        top: calc(100% + 7px);
-        z-index: 1000;
         width: max-content;
         max-width: min(220px, calc(100vw - 24px));
         transform: translate(-50%, -4px);
@@ -479,7 +476,7 @@
         z-index: 5;
         display: none;
         place-items: center;
-        border: 1px dashed rgba(34, 211, 238, 0.7);
+        border: 1px dashed rgba(255, 255, 255, 0.48);
         border-radius: 10px;
         background: rgba(11, 14, 20, 0.72);
         color: var(--text);
@@ -506,7 +503,7 @@
 
       .selection-box {
         fill: none;
-        stroke: var(--accent-2);
+        stroke: rgba(255, 255, 255, 0.82);
         stroke-width: 1.4;
         stroke-dasharray: 5 4;
         vector-effect: non-scaling-stroke;
@@ -514,7 +511,7 @@
       }
 
       .handle-line {
-        stroke: rgba(34, 211, 238, 0.68);
+        stroke: rgba(255, 255, 255, 0.5);
         stroke-width: 1.1;
         vector-effect: non-scaling-stroke;
         pointer-events: none;
@@ -522,23 +519,67 @@
 
       .node-handle,
       .ctrl-handle {
-        stroke: #06101b;
+        stroke: #0d1118;
         stroke-width: 1.4;
         vector-effect: non-scaling-stroke;
         cursor: grab;
       }
 
       .node-handle {
-        fill: var(--accent-2);
+        fill: #f4f4f5;
       }
 
       .ctrl-handle {
-        fill: var(--accent);
+        fill: #a1a1aa;
       }
 
       .node-handle.active {
-        fill: var(--good);
-        stroke: white;
+        fill: #ffffff;
+        stroke: #000000;
+      }
+
+      .path-floating-actions,
+      .path-add-action,
+      .path-delete-action {
+        pointer-events: auto;
+      }
+
+      .path-action-panel {
+        fill: rgba(16, 19, 26, 0.92);
+        stroke: rgba(255, 255, 255, 0.34);
+        stroke-width: 1;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .path-action-label {
+        fill: rgba(255, 255, 255, 0.68);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .path-action-button {
+        fill: #f4f4f5;
+        stroke: #0d1118;
+        stroke-width: 1;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .path-action-button-label {
+        fill: #0d1118;
+        font-size: 9px;
+        font-weight: 900;
+        text-anchor: middle;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .path-add-action:hover .path-action-button,
+      .path-delete-action:hover .path-action-button {
+        fill: #ffffff;
       }
 
       .side {
@@ -661,7 +702,7 @@
       }
 
       .info-icon:focus-visible {
-        outline: 2px solid rgba(34, 211, 238, 0.4);
+        outline: 2px solid rgba(255, 255, 255, 0.34);
         outline-offset: 2px;
       }
 
@@ -681,8 +722,8 @@
       input:focus,
       textarea:focus,
       select:focus {
-        border-color: rgba(34, 211, 238, 0.55);
-        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+        border-color: rgba(255, 255, 255, 0.48);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
       }
 
       textarea {
@@ -832,8 +873,8 @@
       }
 
       .compact-property-field:focus-within {
-        border-color: rgba(34, 211, 238, 0.55);
-        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+        border-color: rgba(255, 255, 255, 0.48);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
       }
 
       .color-control {
@@ -870,25 +911,6 @@
         padding-right: 3px;
       }
 
-      .path-actions {
-        display: grid;
-        gap: 10px;
-        margin-bottom: 10px;
-      }
-
-      .path-action-group {
-        display: grid;
-        gap: 6px;
-      }
-
-      .path-action-title {
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-
       .segments-footer {
         margin-top: 8px;
       }
@@ -911,8 +933,8 @@
 
       .segment.active {
         color: var(--text);
-        border-color: rgba(34, 211, 238, 0.46);
-        background: rgba(34, 211, 238, 0.08);
+        border-color: rgba(255, 255, 255, 0.34);
+        background: rgba(255, 255, 255, 0.07);
       }
 
       .segment-pick,
@@ -1095,7 +1117,7 @@
         <button
           class="tool active"
           data-tool="select"
-          data-tip="Select / Move"
+          data-tip="Select / Move (V)"
           aria-label="Select / Move"
           type="button"
         >
@@ -1105,7 +1127,7 @@
         <button
           class="tool"
           data-tool="pen"
-          data-tip="Path"
+          data-tip="Path (P)"
           aria-label="Path"
           type="button"
         >
@@ -1117,7 +1139,7 @@
         <button
           class="tool"
           data-tool="rect"
-          data-tip="Rectangle"
+          data-tip="Rectangle (R)"
           aria-label="Rectangle"
           type="button"
         >
@@ -1128,7 +1150,7 @@
         <button
           class="tool"
           data-tool="ellipse"
-          data-tip="Ellipse"
+          data-tip="Ellipse (O)"
           aria-label="Ellipse"
           type="button"
         >
@@ -1139,7 +1161,7 @@
         <button
           class="tool"
           data-tool="line"
-          data-tip="Line"
+          data-tip="Line (L)"
           aria-label="Line"
           type="button"
         >
@@ -1148,7 +1170,7 @@
         <button
           class="tool"
           data-tool="polygon"
-          data-tip="Polygon"
+          data-tip="Polygon (G)"
           aria-label="Polygon"
           type="button"
         >
@@ -1159,7 +1181,7 @@
         <button
           class="tool"
           data-tool="polyline"
-          data-tip="Polyline"
+          data-tip="Polyline (Y)"
           aria-label="Polyline"
           type="button"
         >
@@ -1168,7 +1190,7 @@
         <button
           class="tool"
           data-tool="text"
-          data-tip="Text"
+          data-tip="Text (T)"
           aria-label="Text"
           type="button"
         >
@@ -1332,7 +1354,6 @@
           </div>
           <div class="section" id="pathSegmentsSection" hidden>
             <h2>Segments</h2>
-            <div id="pathActions" class="path-actions"></div>
             <div id="segments" class="segments"></div>
             <div class="mini-row segments-footer">
               <button class="btn" id="closePathBtn" type="button">
@@ -1421,8 +1442,14 @@
             <p class="empty">
               <span class="kbd">V</span> select,
               <span class="kbd">P</span> path,
+              <span class="kbd">R</span> rectangle,
+              <span class="kbd">O</span> ellipse,
+              <span class="kbd">L</span> line,
+              <span class="kbd">G</span> polygon,
+              <span class="kbd">Y</span> polyline,
+              <span class="kbd">T</span> text,
               <span class="kbd">Del</span> delete selected node or element,
-              <span class="kbd">Esc</span> finish path.
+              <span class="kbd">Esc</span> finish drawing.
             </p>
           </div>
         </section>
@@ -1529,7 +1556,6 @@
           pathSegmentsSection: document.getElementById("pathSegmentsSection"),
           pathSummary: document.getElementById("pathSummary"),
           pathData: document.getElementById("pathData"),
-          pathActions: document.getElementById("pathActions"),
           closePathBtn: document.getElementById("closePathBtn"),
           segments: document.getElementById("segments"),
           markup: document.getElementById("markup"),
@@ -1709,14 +1735,14 @@
         ]);
 
         const sampleMarkup = `<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
-  <rect id="card" x="70" y="70" width="260" height="160" rx="22" fill="#111827" stroke="#22d3ee" stroke-width="8"/>
-  <circle id="accent-disc" cx="270" cy="190" r="72" fill="#7c5cff" opacity="0.78"/>
-  <path id="editable-wave" d="M 90 345 C 150 250 240 430 315 330 C 390 230 465 395 545 285" fill="none" stroke="#22d3ee" stroke-width="15" stroke-linecap="round"/>
-  <ellipse id="standalone-orbit" cx="610" cy="150" rx="92" ry="52" fill="none" stroke="#7c5cff" stroke-width="10"/>
+  <rect id="card" x="70" y="70" width="260" height="160" rx="22" fill="#1d4ed8" stroke="#f59e0b" stroke-width="8"/>
+  <circle id="accent-disc" cx="270" cy="190" r="72" fill="#f97316" opacity="0.78"/>
+  <path id="editable-wave" d="M 90 345 C 150 250 240 430 315 330 C 390 230 465 395 545 285" fill="none" stroke="#22c55e" stroke-width="15" stroke-linecap="round"/>
+  <ellipse id="standalone-orbit" cx="610" cy="150" rx="92" ry="52" fill="none" stroke="#ec4899" stroke-width="10"/>
   <line id="guide-line" x1="540" y1="390" x2="715" y2="465" stroke="#111827" stroke-width="7" stroke-linecap="round" opacity="0.72"/>
-  <polygon id="marker" points="610,355 690,400 620,455" fill="#22d3ee" opacity="0.9"/>
-  <polygon id="sample-polygon" points="430,470 465,435 510,452 505,505 455,512" fill="none" stroke="#8b5cf6" stroke-width="6" stroke-linejoin="round"/>
-  <polyline id="sample-polyline" points="560,520 600,485 642,515 690,475 725,510" fill="none" stroke="#22d3ee" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon id="marker" points="610,355 690,400 620,455" fill="#ef4444" opacity="0.9"/>
+  <polygon id="sample-polygon" points="430,470 465,435 510,452 505,505 455,512" fill="#fde047" stroke="#7c3aed" stroke-width="6" stroke-linejoin="round"/>
+  <polyline id="sample-polyline" points="560,520 600,485 642,515 690,475 725,510" fill="none" stroke="#06b6d4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
   <text id="label" x="95" y="520" font-size="36" font-family="Inter, system-ui, sans-serif" font-weight="800" fill="#111827">Edit paths, shapes, and markup</text>
 </svg>`;
 
@@ -2273,7 +2299,6 @@
           }
           els.pathData.disabled = !isPath;
           els.segments.innerHTML = "";
-          els.pathActions.innerHTML = "";
 
           if (!isPath) {
             els.closePathBtn.disabled = true;
@@ -2293,7 +2318,6 @@
             (handle) => handle.role === "end",
           ).length;
           els.pathSummary.innerHTML = `<strong>${state.parsedPath.length}</strong> commands · <strong>${pointCount}</strong> editable nodes · <strong>${length}</strong>px drawn length`;
-          renderPathActions();
 
           state.parsedPath.forEach((segment, index) => {
             const item = document.createElement("div");
@@ -2330,41 +2354,6 @@
             });
             item.append(pick, remove);
             els.segments.append(item);
-          });
-        }
-
-        function renderPathActions() {
-          const start = firstPathPoint(state.parsedPath);
-          const end = lastPathPoint(state.parsedPath);
-          [
-            ["At start", "start", start],
-            ["At end", "end", end],
-          ].forEach(([title, endName, point]) => {
-            if (!point) return;
-            const group = document.createElement("div");
-            group.className = "path-action-group";
-            const heading = document.createElement("div");
-            heading.className = "path-action-title";
-            heading.textContent = title;
-            const row = document.createElement("div");
-            row.className = "mini-row";
-            [
-              ["line", "Line"],
-              ["cubic", "Curve"],
-              ["quadratic", "Quad"],
-              ["arc", "Arc"],
-            ].forEach(([type, label]) => {
-              const button = document.createElement("button");
-              button.type = "button";
-              button.className = "btn";
-              button.textContent = `+ ${label}`;
-              button.addEventListener("click", () =>
-                addPathSegmentAtEnd(endName, type),
-              );
-              row.append(button);
-            });
-            group.append(heading, row);
-            els.pathActions.append(group);
           });
         }
 
@@ -2462,6 +2451,125 @@
             });
             els.overlayLayer.append(circle);
           });
+
+          renderPathFloatingActions(handles);
+        }
+
+        function renderPathFloatingActions(handles) {
+          const start = firstPathPoint(state.parsedPath);
+          const end = lastPathPoint(state.parsedPath);
+          if (start) {
+            els.overlayLayer.append(
+              createPathActionGroup(start, "start", "Start", -56, -44),
+            );
+          }
+          if (end) {
+            els.overlayLayer.append(
+              createPathActionGroup(end, "end", "End", 12, 12),
+            );
+          }
+
+          const selected = handles.find((handle) =>
+            sameHandle(handle, state.selectedNode),
+          );
+          const segment = selected && state.parsedPath[selected.segmentIndex];
+          if (selected?.role === "end" && segment?.cmd !== "M") {
+            els.overlayLayer.append(createDeleteNodeAction(selected));
+          }
+        }
+
+        function createPathActionGroup(point, endName, label, dx, dy) {
+          const group = createSvgElement("g", {
+            class: "path-floating-actions",
+            transform: `translate(${fmt(point.x + dx)} ${fmt(point.y + dy)})`,
+          });
+          group.append(
+            createSvgElement("rect", {
+              class: "path-action-panel",
+              x: 0,
+              y: 0,
+              width: 112,
+              height: 38,
+              rx: 7,
+            }),
+          );
+          const title = createSvgElement("text", {
+            class: "path-action-label",
+            x: 8,
+            y: 12,
+          });
+          title.textContent = label.toUpperCase();
+          group.append(title);
+          [
+            ["line", "L"],
+            ["cubic", "C"],
+            ["quadratic", "Q"],
+            ["arc", "A"],
+          ].forEach(([type, shortLabel], index) => {
+            group.append(
+              createPathActionButton(
+                endName,
+                type,
+                shortLabel,
+                8 + index * 25,
+                17,
+              ),
+            );
+          });
+          return group;
+        }
+
+        function createPathActionButton(endName, type, label, x, y) {
+          const button = createSvgElement("g", {
+            class: "path-add-action",
+            transform: `translate(${x} ${y})`,
+            "data-path-add-end": endName,
+            "data-path-add-type": type,
+          });
+          button.append(
+            createSvgElement("rect", {
+              class: "path-action-button",
+              x: 0,
+              y: 0,
+              width: 20,
+              height: 16,
+              rx: 4,
+            }),
+          );
+          const text = createSvgElement("text", {
+            class: "path-action-button-label",
+            x: 10,
+            y: 11,
+          });
+          text.textContent = `+${label}`;
+          button.append(text);
+          return button;
+        }
+
+        function createDeleteNodeAction(point) {
+          const group = createSvgElement("g", {
+            class: "path-delete-action",
+            transform: `translate(${fmt(point.x + 10)} ${fmt(point.y - 27)})`,
+            "data-path-delete-node": "true",
+          });
+          group.append(
+            createSvgElement("rect", {
+              class: "path-action-button",
+              x: 0,
+              y: 0,
+              width: 38,
+              height: 18,
+              rx: 5,
+            }),
+          );
+          const text = createSvgElement("text", {
+            class: "path-action-button-label",
+            x: 19,
+            y: 12,
+          });
+          text.textContent = "DEL";
+          group.append(text);
+          return group;
         }
 
         function afterGeometryChange() {
@@ -3501,6 +3609,21 @@
             startPan(event);
             return;
           }
+          const pathAction = event.target.closest?.(
+            ".path-add-action, .path-delete-action",
+          );
+          if (pathAction) {
+            event.preventDefault();
+            if (pathAction.classList.contains("path-delete-action")) {
+              deleteSelectedNode();
+            } else {
+              addPathSegmentAtEnd(
+                pathAction.dataset.pathAddEnd,
+                pathAction.dataset.pathAddType,
+              );
+            }
+            return;
+          }
           const overlayTarget = event.target.closest?.(
             ".node-handle, .ctrl-handle",
           );
@@ -3686,6 +3809,12 @@
             if (event.target.matches("input, textarea")) return;
             if (key === "v") setTool("select");
             if (key === "p") setTool("pen");
+            if (key === "r") setTool("rect");
+            if (key === "o") setTool("ellipse");
+            if (key === "l") setTool("line");
+            if (key === "g") setTool("polygon");
+            if (key === "y") setTool("polyline");
+            if (key === "t") setTool("text");
             if (event.key === "Escape") finishDrawing();
             if (event.key === "Delete" || event.key === "Backspace") {
               if (state.selectedNode) deleteSelectedNode();
@@ -3697,8 +3826,8 @@
         function init() {
           setViewBox(state.viewBox);
           attachEvents();
-          importMarkup(sampleMarkup);
           setTool("select");
+          renderInspector();
           refreshMarkup();
           resetHistory();
           updateClipboardImportButton();
