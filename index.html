@@ -1,0 +1,3676 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SVG Tool</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #090b10;
+        --chrome: #141821;
+        --chrome-2: #10131a;
+        --panel: #171b24;
+        --panel-2: #1d222d;
+        --line: rgba(255, 255, 255, 0.075);
+        --line-strong: rgba(255, 255, 255, 0.14);
+        --text: #f3f5f8;
+        --muted: #8a92a1;
+        --accent: #8b5cf6;
+        --accent-2: #20c7dd;
+        --danger: #ff627f;
+        --good: #4ade80;
+        --shadow: none;
+        --radius: 8px;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        grid-template-rows: 42px 44px minmax(0, 1fr);
+        height: 100%;
+        gap: 0;
+        padding: 0;
+        background: var(--bg);
+      }
+
+      .topbar,
+      .rail,
+      .stage-wrap,
+      .side {
+        border: 0;
+        background: var(--chrome);
+        box-shadow: var(--shadow);
+        backdrop-filter: none;
+      }
+
+      .topbar {
+        grid-column: 1 / 3;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid var(--line-strong);
+        border-radius: 0;
+        padding: 0 8px 0 10px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 160px;
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        background: linear-gradient(
+          135deg,
+          rgba(139, 92, 246, 0.95),
+          rgba(32, 199, 221, 0.85)
+        );
+        color: white;
+        font-size: 13px;
+        font-weight: 850;
+        letter-spacing: -0.06em;
+        box-shadow: none;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 0;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 6px;
+      }
+
+      .btn,
+      .file-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 28px;
+        padding: 0 9px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        background: #202633;
+        color: var(--text);
+        font-size: 12px;
+        transition:
+          border-color 120ms ease,
+          background 120ms ease,
+          color 120ms ease;
+        user-select: none;
+        white-space: nowrap;
+      }
+
+      .btn:hover,
+      .file-btn:hover {
+        border-color: rgba(124, 92, 255, 0.65);
+        background: #262d3b;
+      }
+
+      .btn.primary {
+        border-color: transparent;
+        background: #f2f4f8;
+        color: #0d1118;
+        font-weight: 700;
+      }
+
+      .btn.danger {
+        color: #ffd9e1;
+        border-color: rgba(255, 92, 122, 0.35);
+      }
+
+      .btn svg {
+        width: 14px;
+        height: 14px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .icon-btn {
+        display: inline-grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        background: #202633;
+        color: var(--muted);
+        transition:
+          border-color 120ms ease,
+          background 120ms ease,
+          color 120ms ease;
+      }
+
+      .icon-btn:hover {
+        color: var(--text);
+        border-color: rgba(124, 92, 255, 0.65);
+        background: #262d3b;
+      }
+
+      .icon-btn.danger {
+        color: #ffc4cf;
+        border-color: rgba(255, 98, 127, 0.34);
+      }
+
+      .icon-btn svg {
+        width: 15px;
+        height: 15px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .file-btn input {
+        display: none;
+      }
+
+      .rail {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 5px;
+        grid-column: 1 / 3;
+        grid-row: 2;
+        border-bottom: 1px solid var(--line-strong);
+        border-radius: 0;
+        padding: 4px 8px;
+        min-width: 0;
+      }
+
+      .tool {
+        width: 36px;
+        height: 36px;
+        border-radius: 7px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        display: grid;
+        place-items: center;
+        position: relative;
+        transition:
+          color 160ms ease,
+          background 160ms ease,
+          border-color 160ms ease;
+      }
+
+      .tool svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .tool.active,
+      .tool:hover {
+        color: var(--text);
+        background: #262d3b;
+        border-color: var(--line-strong);
+      }
+
+      .tool::after {
+        content: attr(aria-label);
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 7px);
+        z-index: 20;
+        transform: translate(-50%, -4px);
+        padding: 5px 7px;
+        border-radius: 6px;
+        background: #232a36;
+        color: var(--text);
+        border: 1px solid var(--line-strong);
+        font-size: 11px;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition:
+          opacity 140ms ease,
+          transform 140ms ease;
+      }
+
+      .tool:hover::after {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      .divider {
+        width: 1px;
+        height: 28px;
+        background: var(--line);
+        margin: 0 4px;
+      }
+
+      .toolbar-spacer {
+        flex: 1;
+        min-width: 12px;
+      }
+
+      .zoom-controls {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--chrome-2);
+      }
+
+      .zoom-btn {
+        min-width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .zoom-btn:hover {
+        background: #262d3b;
+        color: var(--text);
+      }
+
+      .zoom-level {
+        min-width: 54px;
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .stage-wrap {
+        position: relative;
+        grid-column: 1;
+        grid-row: 3;
+        z-index: 1;
+        border-radius: 0;
+        border-right: 1px solid var(--line-strong);
+        min-width: 0;
+        overflow: hidden;
+        background: #0b0e14;
+      }
+
+      .stage-head {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: 8px;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        pointer-events: none;
+      }
+
+      .pill {
+        pointer-events: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 26px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0 8px;
+        background: rgba(16, 19, 26, 0.86);
+        color: var(--muted);
+        font-size: 11px;
+        backdrop-filter: blur(8px);
+      }
+
+      .pill strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        background-color: #0b0e14;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.035) 1px,
+            transparent 1px
+          );
+        background-size: 20px 20px;
+        touch-action: none;
+        cursor: crosshair;
+      }
+
+      .canvas text,
+      body.dragging-canvas,
+      body.dragging-canvas * {
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .canvas.select-mode {
+        cursor: default;
+      }
+
+      .canvas.pan-mode {
+        cursor: grab;
+      }
+
+      .canvas.grabbing {
+        cursor: grabbing;
+      }
+
+      .drop-hint {
+        position: absolute;
+        inset: 14px;
+        z-index: 5;
+        display: none;
+        place-items: center;
+        border: 1px dashed rgba(34, 211, 238, 0.7);
+        border-radius: 10px;
+        background: rgba(11, 14, 20, 0.72);
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 800;
+        pointer-events: none;
+      }
+
+      body.drag-over .drop-hint {
+        display: grid;
+      }
+
+      .artboard {
+        fill: #f8fafc;
+        stroke: rgba(255, 255, 255, 0.28);
+        stroke-width: 1;
+        vector-effect: non-scaling-stroke;
+        filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.38));
+      }
+
+      #artLayer > * {
+        cursor: inherit;
+      }
+
+      .selection-box {
+        fill: none;
+        stroke: var(--accent-2);
+        stroke-width: 1.4;
+        stroke-dasharray: 5 4;
+        vector-effect: non-scaling-stroke;
+        pointer-events: none;
+      }
+
+      .handle-line {
+        stroke: rgba(34, 211, 238, 0.68);
+        stroke-width: 1.1;
+        vector-effect: non-scaling-stroke;
+        pointer-events: none;
+      }
+
+      .node-handle,
+      .ctrl-handle {
+        stroke: #06101b;
+        stroke-width: 1.4;
+        vector-effect: non-scaling-stroke;
+        cursor: grab;
+      }
+
+      .node-handle {
+        fill: var(--accent-2);
+      }
+
+      .ctrl-handle {
+        fill: var(--accent);
+      }
+
+      .node-handle.active {
+        fill: var(--good);
+        stroke: white;
+      }
+
+      .side {
+        display: flex;
+        flex-direction: column;
+        grid-column: 2;
+        grid-row: 3;
+        position: relative;
+        z-index: 3;
+        gap: 0;
+        border-left: 0;
+        border-radius: 0;
+        overflow: hidden;
+        min-width: 0;
+        background: var(--panel);
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0;
+        padding: 0;
+        border-bottom: 1px solid var(--line-strong);
+        background: var(--chrome-2);
+      }
+
+      .tab {
+        height: 34px;
+        border-radius: 0;
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid transparent;
+        border-right-color: var(--line);
+        font-size: 12px;
+      }
+
+      .tab.active {
+        color: var(--text);
+        border-color: transparent;
+        border-bottom-color: var(--accent-2);
+        background: var(--panel);
+      }
+
+      .panel {
+        display: none;
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 0;
+      }
+
+      .panel.active {
+        display: block;
+      }
+
+      .section {
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: transparent;
+        border-radius: 0;
+        padding: 12px;
+        margin-bottom: 0;
+      }
+
+      .section h2 {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 9px;
+      }
+
+      .selection-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 10px;
+      }
+
+      .selection-actions {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .field {
+        display: grid;
+        gap: 5px;
+        margin-bottom: 8px;
+      }
+
+      label {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .attr-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+        position: relative;
+      }
+
+      .info-icon {
+        anchor-name: --info-tip;
+        display: inline-grid;
+        place-items: center;
+        width: 14px;
+        height: 14px;
+        border: 1px solid var(--line-strong);
+        border-radius: 50%;
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 800;
+        line-height: 1;
+        cursor: help;
+      }
+
+      .info-icon::after {
+        content: attr(data-tip);
+        position: fixed;
+        position-anchor: auto;
+        position-area: bottom;
+        position-try-fallbacks: flip-block;
+        justify-self: anchor-center;
+        z-index: 1000;
+        width: 190px;
+        max-width: min(220px, calc(100vw - 24px));
+        margin-top: 7px;
+        transform: translateY(-4px);
+        padding: 7px 8px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        background: #232a36;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        color: var(--text);
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.35;
+        white-space: normal;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 120ms ease,
+          transform 120ms ease;
+      }
+
+      .info-icon:hover::after,
+      .info-icon:focus-visible::after {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .info-icon:focus-visible {
+        outline: 2px solid rgba(34, 211, 238, 0.4);
+        outline-offset: 2px;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        background: #10141c;
+        color: var(--text);
+        outline: none;
+        padding: 7px 8px;
+        font-size: 12px;
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        border-color: rgba(34, 211, 238, 0.55);
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+      }
+
+      textarea {
+        min-height: 190px;
+        resize: vertical;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 11px;
+        line-height: 1.5;
+        tab-size: 2;
+      }
+
+      #markup {
+        min-height: 310px;
+      }
+
+      .mini-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .markup-actions {
+        margin-top: 10px;
+      }
+
+      .mini-row .btn {
+        min-height: 26px;
+        border-radius: 6px;
+        font-size: 11px;
+        padding: 0 8px;
+      }
+
+      .attr-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+
+      #propertyEditor {
+        display: grid;
+        gap: 13px;
+      }
+
+      .property-group,
+      .canvas-size-card {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: 9px;
+        align-items: center;
+      }
+
+      .property-diagram {
+        width: 66px;
+        height: 58px;
+        display: grid;
+        place-items: center;
+      }
+
+      .property-diagram svg {
+        width: 62px;
+        height: 52px;
+        overflow: visible;
+      }
+
+      .property-diagram .shape {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.18);
+        stroke-width: 2;
+      }
+
+      .property-diagram .guide {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.58);
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .property-diagram .dot {
+        fill: rgba(255, 255, 255, 0.72);
+      }
+
+      .property-diagram .soft-fill {
+        fill: rgba(255, 255, 255, 0.22);
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .property-diagram .dim {
+        stroke: rgba(255, 255, 255, 0.46);
+        stroke-width: 1.7;
+        stroke-linecap: round;
+      }
+
+      .compact-field-stack {
+        display: grid;
+        gap: 6px;
+      }
+
+      .compact-property-field {
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #10141c;
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr) 22px;
+        align-items: center;
+        min-height: 31px;
+        overflow: visible;
+      }
+
+      .compact-property-label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+        text-transform: lowercase;
+      }
+
+      .compact-property-field .info-icon {
+        justify-self: center;
+      }
+
+      .compact-property-field input {
+        min-width: 0;
+        height: 30px;
+        padding: 0 0 0 0;
+        border: 0;
+        border-color: transparent;
+        background: transparent;
+        color: var(--text);
+        font-weight: 650;
+        text-align: left;
+      }
+
+      .compact-property-field input:focus {
+        border-color: transparent;
+        box-shadow: none;
+      }
+
+      .property-full-field {
+        display: grid;
+        gap: 5px;
+      }
+
+      .compact-property-field:focus-within {
+        border-color: rgba(34, 211, 238, 0.55);
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+      }
+
+      .color-control {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 6px;
+        align-items: center;
+      }
+
+      .color-control input[type="color"] {
+        width: 34px;
+        height: 30px;
+        padding: 2px;
+        cursor: pointer;
+      }
+
+      .range-control {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 68px;
+        gap: 7px;
+        align-items: center;
+      }
+
+      input[type="range"] {
+        padding: 0;
+        accent-color: #8a92a1;
+      }
+
+      .segments {
+        display: grid;
+        gap: 6px;
+        max-height: 230px;
+        overflow: auto;
+        padding-right: 3px;
+      }
+
+      .path-actions {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .path-action-group {
+        display: grid;
+        gap: 6px;
+      }
+
+      .path-action-title {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .segments-footer {
+        margin-top: 8px;
+      }
+
+      .segment {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0;
+        background: #10141c;
+        color: var(--muted);
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 11px;
+        line-height: 1.45;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 28px;
+        overflow: hidden;
+      }
+
+      .segment.active {
+        color: var(--text);
+        border-color: rgba(34, 211, 238, 0.46);
+        background: rgba(34, 211, 238, 0.08);
+      }
+
+      .segment-pick,
+      .segment-delete {
+        min-width: 0;
+        background: transparent;
+        color: inherit;
+      }
+
+      .segment-pick {
+        overflow: hidden;
+        padding: 7px 8px;
+        text-align: left;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .segment-delete {
+        display: grid;
+        place-items: center;
+        border-left: 1px solid var(--line);
+      }
+
+      .segment-delete:hover {
+        color: var(--danger);
+        background: rgba(255, 98, 127, 0.08);
+      }
+
+      .segment-delete svg {
+        width: 13px;
+        height: 13px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .empty {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .kbd {
+        display: inline-grid;
+        place-items: center;
+        min-width: 22px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 5px;
+        border: 1px solid var(--line-strong);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        font-size: 10px;
+      }
+
+      .toast {
+        position: absolute;
+        left: 50%;
+        bottom: 12px;
+        transform: translateX(-50%) translateY(12px);
+        z-index: 5;
+        max-width: min(520px, calc(100% - 36px));
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        background: rgba(20, 24, 33, 0.94);
+        color: var(--text);
+        padding: 8px 11px;
+        font-size: 12px;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 180ms ease,
+          transform 180ms ease;
+        backdrop-filter: blur(14px);
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      @media (max-width: 860px) {
+        .app {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: 42px 44px minmax(0, 1fr) 320px;
+        }
+
+        .topbar {
+          grid-column: 1;
+        }
+
+        .rail {
+          grid-column: 1;
+        }
+
+        .side {
+          grid-column: 1;
+          grid-row: 4;
+          border-top: 1px solid var(--line-strong);
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          overflow: auto;
+        }
+
+        .app {
+          height: auto;
+          min-height: 100%;
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto 62vh auto;
+        }
+
+        .topbar,
+        .rail,
+        .stage-wrap,
+        .side {
+          grid-column: 1;
+        }
+
+        .topbar {
+          height: auto;
+          align-items: flex-start;
+          flex-direction: column;
+          padding: 9px;
+        }
+
+        .rail {
+          flex-direction: row;
+          grid-row: 2;
+          border-right: 0;
+          border-bottom: 1px solid var(--line-strong);
+          overflow-x: auto;
+        }
+
+        .stage-wrap {
+          grid-row: 3;
+        }
+
+        .side {
+          grid-row: 4;
+        }
+
+        .divider {
+          width: 1px;
+          height: 28px;
+        }
+
+        .tool::after {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="mark">S</div>
+          <div>
+            <h1>SVG Tool</h1>
+            <p class="subtitle">Untitled.svg</p>
+          </div>
+        </div>
+        <div class="actions">
+          <label class="file-btn">
+            Import SVG
+            <input id="fileInput" type="file" accept=".svg,image/svg+xml" />
+          </label>
+          <button class="btn" id="clipboardImportBtn" type="button" hidden>
+            Import from clipboard
+          </button>
+          <button class="btn primary" id="downloadBtn" type="button">
+            Export SVG
+          </button>
+          <button class="btn danger" id="clearBtn" type="button">Clear</button>
+        </div>
+      </header>
+
+      <nav class="rail" aria-label="Editor tools">
+        <button
+          class="tool active"
+          data-tool="select"
+          aria-label="Select / Move"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24"><path d="M4 3l8 18 2-8 7-3z"></path></svg>
+        </button>
+        <div class="divider"></div>
+        <button class="tool" data-tool="pen" aria-label="Path" type="button">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 20l5-2 10-10-3-3L6 15z"></path>
+            <path d="M13 6l3 3"></path>
+          </svg>
+        </button>
+        <button
+          class="tool"
+          data-tool="rect"
+          aria-label="Rectangle"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24">
+            <rect x="5" y="6" width="14" height="12" rx="2"></rect>
+          </svg>
+        </button>
+        <button
+          class="tool"
+          data-tool="ellipse"
+          aria-label="Ellipse"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24">
+            <ellipse cx="12" cy="12" rx="7" ry="5"></ellipse>
+          </svg>
+        </button>
+        <button class="tool" data-tool="line" aria-label="Line" type="button">
+          <svg viewBox="0 0 24 24"><path d="M5 19L19 5"></path></svg>
+        </button>
+        <button
+          class="tool"
+          data-tool="polygon"
+          aria-label="Polygon"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M12 4l7 5v8l-7 3-7-3V9z"></path>
+          </svg>
+        </button>
+        <button
+          class="tool"
+          data-tool="polyline"
+          aria-label="Polyline"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24"><path d="M4 17l5-9 5 7 6-10"></path></svg>
+        </button>
+        <button class="tool" data-tool="text" aria-label="Text" type="button">
+          <svg viewBox="0 0 24 24">
+            <path d="M5 6h14"></path>
+            <path d="M12 6v12"></path>
+            <path d="M9 18h6"></path>
+          </svg>
+        </button>
+        <div class="toolbar-spacer"></div>
+        <div class="zoom-controls" aria-label="Canvas zoom controls">
+          <button
+            class="zoom-btn"
+            id="zoomOutBtn"
+            type="button"
+            aria-label="Zoom out"
+          >
+            -
+          </button>
+          <button
+            class="zoom-btn"
+            id="zoomResetBtn"
+            type="button"
+            aria-label="Reset zoom"
+          >
+            <span id="zoomLevel">100%</span>
+          </button>
+          <button
+            class="zoom-btn"
+            id="zoomInBtn"
+            type="button"
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+        </div>
+      </nav>
+
+      <main class="stage-wrap">
+        <div class="stage-head">
+          <div class="pill">
+            Tool: <strong id="toolName">Select / Move</strong>
+          </div>
+          <div class="pill">
+            ViewBox: <strong id="viewBoxLabel">0 0 800 600</strong>
+          </div>
+        </div>
+        <svg
+          id="canvas"
+          class="canvas select-mode"
+          viewBox="-40 -40 880 680"
+          role="img"
+          aria-label="SVG editing canvas"
+        >
+          <defs>
+            <pattern
+              id="fineGrid"
+              width="20"
+              height="20"
+              patternUnits="userSpaceOnUse"
+            >
+              <path
+                d="M20 0H0V20"
+                fill="none"
+                stroke="rgba(8,13,25,0.13)"
+                stroke-width="1"
+              ></path>
+            </pattern>
+          </defs>
+          <rect
+            id="artboard"
+            class="artboard"
+            x="0"
+            y="0"
+            width="800"
+            height="600"
+          ></rect>
+          <rect
+            id="artboardGrid"
+            x="0"
+            y="0"
+            width="800"
+            height="600"
+            fill="url(#fineGrid)"
+            pointer-events="none"
+          ></rect>
+          <g id="artLayer"></g>
+          <g id="overlayLayer"></g>
+        </svg>
+        <div id="dropHint" class="drop-hint">Drop SVG to import</div>
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      </main>
+
+      <aside class="side">
+        <div class="tabs" role="tablist" aria-label="Editor panels">
+          <button class="tab active" data-panel="inspect" type="button">
+            Inspect
+          </button>
+          <button class="tab" data-panel="canvas" type="button">Canvas</button>
+          <button class="tab" data-panel="markup" type="button">Export</button>
+        </div>
+
+        <section class="panel active" id="inspectPanel">
+          <div class="section">
+            <h2>Selection</h2>
+            <div class="selection-row">
+              <div id="selectionInfo" class="empty">
+                No element selected. Pick the Select tool and click any SVG
+                element.
+              </div>
+              <div class="selection-actions">
+                <button
+                  class="icon-btn"
+                  id="duplicateBtn"
+                  type="button"
+                  aria-label="Duplicate element"
+                  title="Duplicate element"
+                >
+                  <svg viewBox="0 0 24 24">
+                    <rect x="8" y="8" width="10" height="10" rx="2"></rect>
+                    <path
+                      d="M6 16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                    ></path>
+                  </svg>
+                </button>
+                <button
+                  class="icon-btn danger"
+                  id="deleteElementBtn"
+                  type="button"
+                  aria-label="Delete element"
+                  title="Delete element"
+                >
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 7h16"></path>
+                    <path d="M10 11v6"></path>
+                    <path d="M14 11v6"></path>
+                    <path d="M6 7l1 14h10l1-14"></path>
+                    <path d="M9 7V4h6v3"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="section" id="pathSummarySection" hidden>
+            <h2>Path Inspector</h2>
+            <div id="pathSummary" class="empty">
+              Select a path to inspect drawing commands, points, control
+              handles, and length.
+            </div>
+          </div>
+          <div class="section" id="pathDataSection" hidden>
+            <h2>Path Data</h2>
+            <textarea
+              id="pathData"
+              spellcheck="false"
+              placeholder="Path d attribute"
+            ></textarea>
+          </div>
+          <div class="section" id="pathSegmentsSection" hidden>
+            <h2>Segments</h2>
+            <div id="pathActions" class="path-actions"></div>
+            <div id="segments" class="segments"></div>
+            <div class="mini-row segments-footer">
+              <button class="btn" id="closePathBtn" type="button">
+                Close Path
+              </button>
+            </div>
+          </div>
+          <div class="section" id="propertiesSection" hidden>
+            <h2>Properties</h2>
+            <div id="propertyEditor"></div>
+          </div>
+          <div class="section" id="strokeSection" hidden>
+            <h2>Stroke</h2>
+            <div class="attr-grid" id="strokeEditor"></div>
+          </div>
+          <div class="section" id="fillSection" hidden>
+            <h2>Fill</h2>
+            <div class="attr-grid" id="fillEditor"></div>
+          </div>
+          <div class="section" id="fontSection" hidden>
+            <h2>Font</h2>
+            <div class="attr-grid" id="fontEditor"></div>
+          </div>
+          <div class="section">
+            <h2>Attributes</h2>
+            <div class="attr-grid" id="attributeEditor"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="canvasPanel">
+          <div class="section">
+            <h2>Canvas</h2>
+            <div class="canvas-size-card">
+              <div class="property-diagram" aria-hidden="true">
+                <svg viewBox="0 0 72 58">
+                  <rect
+                    class="shape"
+                    x="17"
+                    y="13"
+                    width="38"
+                    height="30"
+                    rx="3"
+                  ></rect>
+                  <path class="guide" d="M17 48h38M60 13v30"></path>
+                  <path class="dim" d="M17 46v4M55 46v4M58 13h4M58 43h4"></path>
+                </svg>
+              </div>
+              <div class="compact-field-stack">
+                <label class="compact-property-field">
+                  <span class="compact-property-label">w</span>
+                  <input
+                    id="viewWidth"
+                    type="number"
+                    value="800"
+                    min="1"
+                    aria-label="Canvas width"
+                  />
+                  <span
+                    class="info-icon"
+                    data-tip="Canvas width in SVG units."
+                    tabindex="0"
+                    >i</span
+                  >
+                </label>
+                <label class="compact-property-field">
+                  <span class="compact-property-label">h</span>
+                  <input
+                    id="viewHeight"
+                    type="number"
+                    value="600"
+                    min="1"
+                    aria-label="Canvas height"
+                  />
+                  <span
+                    class="info-icon"
+                    data-tip="Canvas height in SVG units."
+                    tabindex="0"
+                    >i</span
+                  >
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="section">
+            <h2>Shortcuts</h2>
+            <p class="empty">
+              <span class="kbd">V</span> select,
+              <span class="kbd">P</span> path,
+              <span class="kbd">Del</span> delete selected node or element,
+              <span class="kbd">Esc</span> finish path.
+            </p>
+          </div>
+        </section>
+
+        <section class="panel" id="markupPanel">
+          <div class="section">
+            <h2>SVG Markup</h2>
+            <textarea id="markup" spellcheck="false"></textarea>
+            <div class="mini-row markup-actions">
+              <button class="btn" id="copyMarkupBtn" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="8" y="8" width="10" height="10" rx="2"></rect>
+                  <path
+                    d="M6 16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                  ></path>
+                </svg>
+                Copy to clipboard
+              </button>
+              <button class="btn" id="sampleBtn" type="button">
+                Load Sample
+              </button>
+            </div>
+          </div>
+          <div class="section">
+            <h2>Export</h2>
+            <div class="mini-row">
+              <button class="btn" id="exportSvgBtn" type="button">
+                Export SVG
+              </button>
+              <button class="btn" id="exportPngBtn" type="button">
+                Export PNG
+              </button>
+              <button class="btn" id="exportJpgBtn" type="button">
+                Export JPG
+              </button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <script>
+      (() => {
+        const SVG_NS = "http://www.w3.org/2000/svg";
+        const state = {
+          tool: "select",
+          viewBox: [0, 0, 800, 600],
+          selected: null,
+          selectedNode: null,
+          drag: null,
+          drawing: null,
+          parsedPath: [],
+          viewport: null,
+          suppressMarkupRefresh: false,
+          markupTimer: null,
+          history: [],
+          redo: [],
+          historyTimer: null,
+          historyReady: false,
+          isRestoring: false,
+        };
+
+        const els = {
+          canvas: document.getElementById("canvas"),
+          artboard: document.getElementById("artboard"),
+          artboardGrid: document.getElementById("artboardGrid"),
+          artLayer: document.getElementById("artLayer"),
+          overlayLayer: document.getElementById("overlayLayer"),
+          toast: document.getElementById("toast"),
+          dropHint: document.getElementById("dropHint"),
+          toolName: document.getElementById("toolName"),
+          viewBoxLabel: document.getElementById("viewBoxLabel"),
+          zoomLevel: document.getElementById("zoomLevel"),
+          zoomInBtn: document.getElementById("zoomInBtn"),
+          zoomOutBtn: document.getElementById("zoomOutBtn"),
+          zoomResetBtn: document.getElementById("zoomResetBtn"),
+          fileInput: document.getElementById("fileInput"),
+          clipboardImportBtn: document.getElementById("clipboardImportBtn"),
+          downloadBtn: document.getElementById("downloadBtn"),
+          clearBtn: document.getElementById("clearBtn"),
+          tabs: document.querySelectorAll(".tab"),
+          panels: {
+            inspect: document.getElementById("inspectPanel"),
+            canvas: document.getElementById("canvasPanel"),
+            markup: document.getElementById("markupPanel"),
+          },
+          selectionInfo: document.getElementById("selectionInfo"),
+          propertiesSection: document.getElementById("propertiesSection"),
+          propertyEditor: document.getElementById("propertyEditor"),
+          strokeSection: document.getElementById("strokeSection"),
+          strokeEditor: document.getElementById("strokeEditor"),
+          fillSection: document.getElementById("fillSection"),
+          fillEditor: document.getElementById("fillEditor"),
+          fontSection: document.getElementById("fontSection"),
+          fontEditor: document.getElementById("fontEditor"),
+          attributeEditor: document.getElementById("attributeEditor"),
+          duplicateBtn: document.getElementById("duplicateBtn"),
+          deleteElementBtn: document.getElementById("deleteElementBtn"),
+          viewWidth: document.getElementById("viewWidth"),
+          viewHeight: document.getElementById("viewHeight"),
+          sampleBtn: document.getElementById("sampleBtn"),
+          pathSummarySection: document.getElementById("pathSummarySection"),
+          pathDataSection: document.getElementById("pathDataSection"),
+          pathSegmentsSection: document.getElementById("pathSegmentsSection"),
+          pathSummary: document.getElementById("pathSummary"),
+          pathData: document.getElementById("pathData"),
+          pathActions: document.getElementById("pathActions"),
+          closePathBtn: document.getElementById("closePathBtn"),
+          segments: document.getElementById("segments"),
+          markup: document.getElementById("markup"),
+          copyMarkupBtn: document.getElementById("copyMarkupBtn"),
+          exportSvgBtn: document.getElementById("exportSvgBtn"),
+          exportPngBtn: document.getElementById("exportPngBtn"),
+          exportJpgBtn: document.getElementById("exportJpgBtn"),
+        };
+
+        const toolLabels = {
+          select: "Select / Move",
+          pen: "Path",
+          rect: "Rectangle",
+          ellipse: "Ellipse",
+          line: "Line",
+          polygon: "Polygon",
+          polyline: "Polyline",
+          text: "Text",
+        };
+
+        const propertyMap = {
+          rect: ["x", "y", "width", "height", "rx", "ry"],
+          circle: ["cx", "cy", "r"],
+          ellipse: ["cx", "cy", "rx", "ry"],
+          line: ["x1", "y1", "x2", "y2"],
+          polyline: ["points"],
+          polygon: ["points"],
+          text: ["x", "y"],
+          image: ["href", "x", "y", "width", "height"],
+          use: ["href", "x", "y", "width", "height"],
+        };
+
+        const universalAttrs = ["id", "class", "style", "opacity"];
+        const strokeAttrs = [
+          "stroke",
+          "stroke-width",
+          "stroke-opacity",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+        ];
+        const fillAttrs = ["fill", "fill-opacity", "fill-rule"];
+        const fontAttrs = [
+          "font-family",
+          "font-size",
+          "font-weight",
+          "font-style",
+          "text-anchor",
+          "dominant-baseline",
+          "letter-spacing",
+        ];
+        const strokeTags = new Set([
+          "path",
+          "rect",
+          "circle",
+          "ellipse",
+          "line",
+          "polyline",
+          "polygon",
+          "text",
+        ]);
+        const fillTags = new Set([
+          "path",
+          "rect",
+          "circle",
+          "ellipse",
+          "polyline",
+          "polygon",
+          "text",
+        ]);
+
+        const attributeDescriptions = {
+          id: "Unique element identifier used by CSS, scripts, and references.",
+          class: "Space-separated CSS classes for styling or scripting.",
+          style: "Inline CSS declarations applied directly to this element.",
+          fill: "Interior paint for closed shapes. Use a color, gradient reference, or none.",
+          "fill-opacity": "Fill transparency from 0 to 1.",
+          stroke:
+            "Outline paint for paths and shapes. Use a color, gradient reference, or none.",
+          "stroke-width": "Thickness of the element outline in SVG units.",
+          "stroke-opacity": "Stroke transparency from 0 to 1.",
+          "stroke-linecap": "Shape used at the ends of open stroked paths.",
+          "stroke-linejoin": "Shape used where stroked path segments meet.",
+          "stroke-dasharray": "Dash and gap pattern for stroked outlines.",
+          "stroke-dashoffset":
+            "Distance into the dash pattern where the stroke starts.",
+          "fill-rule":
+            "Rule used to decide which parts of a self-intersecting path are filled.",
+          opacity: "Overall element transparency from 0 to 1.",
+          transform:
+            "Element transform such as translate, rotate, scale, or matrix.",
+          x: "Horizontal position of the element.",
+          y: "Vertical position of the element.",
+          width: "Element width in SVG units.",
+          height: "Element height in SVG units.",
+          cx: "Center x coordinate.",
+          cy: "Center y coordinate.",
+          r: "Circle radius.",
+          rx: "Horizontal corner radius for rectangles, or horizontal radius for ellipses.",
+          ry: "Vertical corner radius for rectangles, or vertical radius for ellipses.",
+          x1: "Starting x coordinate for a line.",
+          y1: "Starting y coordinate for a line.",
+          x2: "Ending x coordinate for a line.",
+          y2: "Ending y coordinate for a line.",
+          points: "Point list for polygon and polyline elements.",
+          "font-size": "Text size in SVG units.",
+          "font-family": "Font stack used to render text.",
+          "font-weight": "Text weight.",
+          "font-style": "Text style such as normal, italic, or oblique.",
+          "text-anchor": "How text is aligned relative to its x coordinate.",
+          "dominant-baseline": "Vertical alignment baseline for text.",
+          "letter-spacing": "Additional spacing between text characters.",
+          href: "Referenced resource or element.",
+        };
+
+        const attributeOptions = {
+          "stroke-linecap": ["butt", "round", "square"],
+          "stroke-linejoin": ["miter", "round", "bevel"],
+          "fill-rule": ["nonzero", "evenodd"],
+          "text-anchor": ["start", "middle", "end"],
+          "font-style": ["normal", "italic", "oblique"],
+          "dominant-baseline": [
+            "auto",
+            "middle",
+            "central",
+            "hanging",
+            "text-before-edge",
+            "text-after-edge",
+            "alphabetic",
+            "ideographic",
+          ],
+          "font-weight": [
+            "normal",
+            "bold",
+            "bolder",
+            "lighter",
+            "100",
+            "200",
+            "300",
+            "400",
+            "500",
+            "600",
+            "700",
+            "800",
+            "900",
+          ],
+        };
+
+        const numericAttrs = new Set([
+          "x",
+          "y",
+          "width",
+          "height",
+          "cx",
+          "cy",
+          "r",
+          "rx",
+          "ry",
+          "x1",
+          "y1",
+          "x2",
+          "y2",
+          "stroke-width",
+          "stroke-dashoffset",
+          "font-size",
+          "letter-spacing",
+        ]);
+        const colorAttrs = new Set(["fill", "stroke"]);
+        const opacityAttrs = new Set([
+          "opacity",
+          "stroke-opacity",
+          "fill-opacity",
+        ]);
+
+        const sampleMarkup = `<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <rect id="card" x="70" y="70" width="260" height="160" rx="22" fill="#111827" stroke="#22d3ee" stroke-width="8"/>
+  <circle id="accent-disc" cx="270" cy="190" r="72" fill="#7c5cff" opacity="0.78"/>
+  <path id="editable-wave" d="M 90 345 C 150 250 240 430 315 330 C 390 230 465 395 545 285" fill="none" stroke="#22d3ee" stroke-width="15" stroke-linecap="round"/>
+  <ellipse id="standalone-orbit" cx="610" cy="150" rx="92" ry="52" fill="none" stroke="#7c5cff" stroke-width="10"/>
+  <line id="guide-line" x1="540" y1="390" x2="715" y2="465" stroke="#111827" stroke-width="7" stroke-linecap="round" opacity="0.72"/>
+  <polygon id="marker" points="610,355 690,400 620,455" fill="#22d3ee" opacity="0.9"/>
+  <polygon id="sample-polygon" points="430,470 465,435 510,452 505,505 455,512" fill="none" stroke="#8b5cf6" stroke-width="6" stroke-linejoin="round"/>
+  <polyline id="sample-polyline" points="560,520 600,485 642,515 690,475 725,510" fill="none" stroke="#22d3ee" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text id="label" x="95" y="520" font-size="36" font-family="Inter, system-ui, sans-serif" font-weight="800" fill="#111827">Edit paths, shapes, and markup</text>
+</svg>`;
+
+        function createSvgElement(tag, attrs = {}) {
+          const el = document.createElementNS(SVG_NS, tag);
+          Object.entries(attrs).forEach(([key, value]) =>
+            el.setAttribute(key, value),
+          );
+          return el;
+        }
+
+        function round(value, places = 2) {
+          if (!Number.isFinite(value)) return 0;
+          const factor = 10 ** places;
+          return Math.round(value * factor) / factor;
+        }
+
+        function fmt(value) {
+          return Number.isInteger(value)
+            ? String(value)
+            : String(round(value, 2));
+        }
+
+        function pointFromEvent(event) {
+          const pt = els.canvas.createSVGPoint();
+          pt.x = event.clientX;
+          pt.y = event.clientY;
+          const matrix = els.canvas.getScreenCTM();
+          return matrix ? pt.matrixTransform(matrix.inverse()) : { x: 0, y: 0 };
+        }
+
+        function setTool(tool) {
+          if (state.drawing && state.drawing.tool !== tool)
+            finishDrawing(false);
+          state.tool = tool;
+          document.querySelectorAll(".tool").forEach((button) => {
+            button.classList.toggle("active", button.dataset.tool === tool);
+          });
+          els.toolName.textContent = toolLabels[tool];
+          els.canvas.classList.toggle("select-mode", tool === "select");
+          renderOverlay();
+        }
+
+        function setPanel(panel) {
+          els.tabs.forEach((tab) =>
+            tab.classList.toggle("active", tab.dataset.panel === panel),
+          );
+          Object.entries(els.panels).forEach(([key, section]) => {
+            section.classList.toggle("active", key === panel);
+          });
+        }
+
+        function setViewBox(values) {
+          state.viewBox = values.map(Number);
+          syncArtboard();
+          resetViewport();
+          updateZoomUi();
+          renderOverlay();
+        }
+
+        function syncArtboard() {
+          const [x, y, width, height] = state.viewBox;
+          els.artboard.setAttribute("x", x);
+          els.artboard.setAttribute("y", y);
+          els.artboard.setAttribute("width", width);
+          els.artboard.setAttribute("height", height);
+          els.artboardGrid.setAttribute("x", x);
+          els.artboardGrid.setAttribute("y", y);
+          els.artboardGrid.setAttribute("width", width);
+          els.artboardGrid.setAttribute("height", height);
+          els.viewBoxLabel.textContent = state.viewBox.map(fmt).join(" ");
+          els.viewWidth.value = round(width);
+          els.viewHeight.value = round(height);
+        }
+
+        function resetViewport() {
+          const [x, y, width, height] = state.viewBox;
+          const pad = Math.max(width, height) * 0.08;
+          state.viewport = {
+            x: x - pad,
+            y: y - pad,
+            width: width + pad * 2,
+            height: height + pad * 2,
+          };
+          applyViewport();
+          updateZoomUi();
+        }
+
+        function applyViewport() {
+          if (!state.viewport) return;
+          els.canvas.setAttribute(
+            "viewBox",
+            `${fmt(state.viewport.x)} ${fmt(state.viewport.y)} ${fmt(state.viewport.width)} ${fmt(state.viewport.height)}`,
+          );
+        }
+
+        function baseViewportSize() {
+          const [, , width, height] = state.viewBox;
+          const pad = Math.max(width, height) * 0.08;
+          return { width: width + pad * 2, height: height + pad * 2 };
+        }
+
+        function zoomScale() {
+          if (!state.viewport) return 1;
+          return baseViewportSize().width / state.viewport.width;
+        }
+
+        function updateZoomUi() {
+          if (!els.zoomLevel) return;
+          els.zoomLevel.textContent = `${Math.round(zoomScale() * 100)}%`;
+        }
+
+        function zoomCanvas(factor, center = null) {
+          if (!state.viewport) resetViewport();
+          const rawNextWidth = state.viewport.width / factor;
+          if (!Number.isFinite(rawNextWidth) || rawNextWidth <= 0) return;
+          const point = center || {
+            x: state.viewport.x + state.viewport.width / 2,
+            y: state.viewport.y + state.viewport.height / 2,
+          };
+          const nextWidth = rawNextWidth;
+          const nextHeight = state.viewport.height / factor;
+          const base = baseViewportSize();
+          const minWidth = base.width / 8;
+          const maxWidth = base.width * 5;
+          const clampedWidth = Math.min(
+            maxWidth,
+            Math.max(minWidth, nextWidth),
+          );
+          const ratio = clampedWidth / state.viewport.width;
+          const clampedHeight = nextHeight * (clampedWidth / nextWidth);
+          state.viewport = {
+            x: point.x - (point.x - state.viewport.x) * ratio,
+            y:
+              point.y -
+              (point.y - state.viewport.y) *
+                (clampedHeight / state.viewport.height),
+            width: clampedWidth,
+            height: clampedHeight,
+          };
+          applyViewport();
+          updateZoomUi();
+          renderOverlay();
+        }
+
+        function panViewport(dx, dy) {
+          if (!state.viewport) return;
+          state.viewport.x -= dx;
+          state.viewport.y -= dy;
+          applyViewport();
+          renderOverlay();
+        }
+
+        function selectElement(el) {
+          state.selected = el && els.artLayer.contains(el) ? el : null;
+          state.selectedNode = null;
+          state.parsedPath =
+            state.selected?.tagName.toLowerCase() === "path"
+              ? parsePath(state.selected.getAttribute("d") || "")
+              : [];
+          renderOverlay();
+          renderInspector();
+          refreshMarkup();
+        }
+
+        function renderSelectionSummary() {
+          const el = state.selected;
+          if (!el) {
+            els.selectionInfo.innerHTML =
+              "No element selected. Pick the Select tool and click any SVG element.";
+            return;
+          }
+          const tag = el.tagName.toLowerCase();
+          const box = safeBBox(el);
+          const id = el.getAttribute("id") || "(none)";
+          els.selectionInfo.innerHTML = `<strong>&lt;${tag}&gt;</strong><br>ID: ${escapeHtml(id)}<br>Bounds: ${fmt(box.x)}, ${fmt(box.y)} · ${fmt(box.width)} × ${fmt(box.height)}`;
+        }
+
+        function renderInspector() {
+          const el = state.selected;
+          els.propertyEditor.innerHTML = "";
+          els.strokeEditor.innerHTML = "";
+          els.fillEditor.innerHTML = "";
+          els.fontEditor.innerHTML = "";
+          els.attributeEditor.innerHTML = "";
+          if (!el) {
+            renderSelectionSummary();
+            els.duplicateBtn.disabled = true;
+            els.deleteElementBtn.disabled = true;
+            els.propertiesSection.hidden = true;
+            els.strokeSection.hidden = true;
+            els.fillSection.hidden = true;
+            els.fontSection.hidden = true;
+            renderPathPanel();
+            return;
+          }
+
+          const tag = el.tagName.toLowerCase();
+          renderSelectionSummary();
+          els.duplicateBtn.disabled = false;
+          els.deleteElementBtn.disabled = false;
+
+          const properties = propertyMap[tag] || [];
+          els.propertiesSection.hidden = properties.length === 0;
+          if (properties.length) {
+            els.propertyEditor.append(
+              createPropertyControls(tag, properties, el),
+            );
+          }
+
+          renderAttributeSection(
+            els.strokeSection,
+            els.strokeEditor,
+            strokeTags.has(tag) ? strokeAttrs : [],
+            el,
+          );
+          renderAttributeSection(
+            els.fillSection,
+            els.fillEditor,
+            fillTags.has(tag) ? fillAttrs : [],
+            el,
+          );
+          renderAttributeSection(
+            els.fontSection,
+            els.fontEditor,
+            tag === "text" ? fontAttrs : [],
+            el,
+          );
+          renderAttributeSection(null, els.attributeEditor, universalAttrs, el);
+
+          renderPathPanel();
+        }
+
+        function renderAttributeSection(section, editor, attrs, el) {
+          if (section) section.hidden = attrs.length === 0;
+          attrs.forEach((attr) => {
+            editor.append(
+              createField(attr, el.getAttribute(attr), (value) =>
+                updateAttributeLive(attr, value),
+              ),
+            );
+          });
+        }
+
+        function createPropertyControls(tag, attrs, el) {
+          const fragment = document.createDocumentFragment();
+          propertyGroups(tag, attrs).forEach((group) => {
+            const section = document.createElement("div");
+            section.className = "property-group";
+            const diagram = document.createElement("div");
+            diagram.className = "property-diagram";
+            diagram.setAttribute("aria-hidden", "true");
+            diagram.innerHTML = propertyDiagram(tag, group.kind);
+            const stack = document.createElement("div");
+            stack.className = "compact-field-stack";
+            group.attrs.forEach((attr) => {
+              const create =
+                attr === "points"
+                  ? createFullPropertyField
+                  : createCompactPropertyField;
+              stack.append(
+                create(attr, el.getAttribute(attr), (value) =>
+                  updateAttributeLive(attr, value),
+                ),
+              );
+            });
+            section.append(diagram, stack);
+            fragment.append(section);
+          });
+          return fragment;
+        }
+
+        function propertyGroups(tag, attrs) {
+          const has = (attr) => attrs.includes(attr);
+          const groups = [];
+          const push = (kind, names) => {
+            const present = names.filter(has);
+            if (present.length) groups.push({ kind, attrs: present });
+          };
+
+          if (tag === "circle") {
+            push("center", ["cx", "cy"]);
+            push("radius", ["r"]);
+          } else if (tag === "ellipse") {
+            push("center", ["cx", "cy"]);
+            push("radii", ["rx", "ry"]);
+          } else if (tag === "rect" || tag === "image" || tag === "use") {
+            push("position", ["x", "y"]);
+            push("size", ["width", "height"]);
+            push("radius", ["rx", "ry"]);
+            push("reference", ["href"]);
+          } else if (tag === "line") {
+            push("start", ["x1", "y1"]);
+            push("end", ["x2", "y2"]);
+          } else if (tag === "text") {
+            push("text-position", ["x", "y"]);
+          } else if (tag === "polygon" || tag === "polyline") {
+            push("points", ["points"]);
+          } else {
+            attrs.forEach((attr) => push("position", [attr]));
+          }
+          return groups;
+        }
+
+        function propertyDiagram(tag, kind) {
+          const shape =
+            tag === "circle"
+              ? `<circle class="shape" cx="36" cy="29" r="17"></circle>`
+              : tag === "ellipse"
+                ? `<ellipse class="shape" cx="36" cy="29" rx="23" ry="14"></ellipse>`
+                : tag === "line"
+                  ? `<path class="shape" d="M17 42L55 16"></path>`
+                  : tag === "text"
+                    ? `<text class="soft-fill" x="33" y="35" font-size="24" font-weight="800">T</text>`
+                    : tag === "polygon" || tag === "polyline"
+                      ? `<path class="shape" d="M17 42 29 15 55 32 43 45Z"></path>`
+                      : `<rect class="shape" x="17" y="14" width="38" height="29" rx="4"></rect>`;
+
+          const guides = {
+            center: `<circle class="dot" cx="36" cy="29" r="3.6"></circle>`,
+            position: `<circle class="dot" cx="17" cy="14" r="3.4"></circle><path class="dim" d="M17 8v40M11 14h50"></path>`,
+            "text-position": `<circle class="dot" cx="19" cy="44" r="3.4"></circle><path class="dim" d="M19 10v40M9 44h52"></path>`,
+            radius:
+              tag === "rect"
+                ? `<path class="guide" d="M17 24q0-10 10-10M17 24h10M27 14v10"></path>`
+                : `<path class="guide" d="M36 29h17"></path>`,
+            radii: `<path class="guide" d="M13 29h46M36 15v28"></path>`,
+            size: `<path class="guide" d="M17 48h38M60 14v29"></path><path class="dim" d="M17 46v4M55 46v4M58 14h4M58 43h4"></path>`,
+            start: `<circle class="dot" cx="17" cy="42" r="3.6"></circle>`,
+            end: `<circle class="dot" cx="55" cy="16" r="3.6"></circle>`,
+            points: `<circle class="dot" cx="17" cy="42" r="3"></circle><circle class="dot" cx="29" cy="15" r="3"></circle><circle class="dot" cx="55" cy="32" r="3"></circle>`,
+            reference: `<path class="guide" d="M24 29h24M38 19l10 10-10 10"></path>`,
+          };
+
+          return `<svg viewBox="0 0 72 58">${shape}${guides[kind] || guides.position}</svg>`;
+        }
+
+        function createCompactPropertyField(attr, value, onUpdate) {
+          const label = document.createElement("label");
+          label.className = "compact-property-field";
+          const shortLabel = document.createElement("span");
+          shortLabel.className = "compact-property-label";
+          shortLabel.textContent = propertyLabel(attr);
+          const info = createInfoIcon(attr);
+          const input = document.createElement("input");
+          input.type = numericAttrs.has(attr) ? "number" : "text";
+          if (numericAttrs.has(attr)) input.step = "1";
+          input.value = value ?? "";
+          input.setAttribute("aria-label", attr);
+          input.addEventListener("input", () => onUpdate(input.value));
+          input.addEventListener("change", () => onUpdate(input.value));
+          label.append(shortLabel, input, info);
+          return label;
+        }
+
+        function createFullPropertyField(attr, value, onUpdate) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "property-full-field";
+          const label = document.createElement("label");
+          label.className = "attr-label";
+          label.textContent = attr;
+          label.append(createInfoIcon(attr));
+          const input = document.createElement("input");
+          input.value = value ?? "";
+          input.setAttribute("aria-label", attr);
+          input.addEventListener("input", () => onUpdate(input.value));
+          input.addEventListener("change", () => onUpdate(input.value));
+          wrapper.append(label, input);
+          return wrapper;
+        }
+
+        function propertyLabel(attr) {
+          if (attr === "width") return "w";
+          if (attr === "height") return "h";
+          return attr;
+        }
+
+        function createInfoIcon(
+          attr,
+          tip = attributeDescriptions[attr] ||
+            "SVG attribute for this element.",
+        ) {
+          const info = document.createElement("span");
+          info.className = "info-icon";
+          info.textContent = "i";
+          info.tabIndex = 0;
+          info.dataset.tip = tip;
+          return info;
+        }
+
+        function createField(attr, value, onUpdate) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "field";
+          const label = document.createElement("label");
+          label.className = "attr-label";
+          label.textContent = attr;
+          label.append(createInfoIcon(attr));
+          wrapper.append(label, createAttributeControl(attr, value, onUpdate));
+          return wrapper;
+        }
+
+        function createAttributeControl(attr, value, onUpdate) {
+          if (colorAttrs.has(attr)) {
+            return createColorControl(attr, value, onUpdate);
+          }
+
+          if (opacityAttrs.has(attr)) {
+            return createOpacityControl(attr, value, onUpdate);
+          }
+
+          if (attributeOptions[attr]) {
+            const select = document.createElement("select");
+            select.setAttribute("aria-label", attr);
+            select.append(new Option("", ""));
+            attributeOptions[attr].forEach((option) =>
+              select.append(new Option(option, option)),
+            );
+            if (value && !attributeOptions[attr].includes(value))
+              select.append(new Option(value, value));
+            select.value = value ?? "";
+            select.addEventListener("input", () => onUpdate(select.value));
+            select.addEventListener("change", () => onUpdate(select.value));
+            return select;
+          }
+
+          const input = document.createElement("input");
+          if (numericAttrs.has(attr)) {
+            input.type = "number";
+            input.step = attr === "opacity" ? "0.01" : "1";
+          }
+          input.value = value ?? "";
+          input.setAttribute("aria-label", attr);
+          input.addEventListener("input", () => onUpdate(input.value));
+          input.addEventListener("change", () => onUpdate(input.value));
+          return input;
+        }
+
+        function createColorControl(attr, value, onUpdate) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "color-control";
+          const picker = document.createElement("input");
+          picker.type = "color";
+          picker.setAttribute("aria-label", `${attr} color picker`);
+          const text = document.createElement("input");
+          text.setAttribute("aria-label", attr);
+          text.value = value ?? "";
+          const parsed = parseColor(value);
+          picker.value = parsed || "#000000";
+          picker.disabled = !parsed && Boolean(value);
+
+          picker.addEventListener("input", () => {
+            text.value = picker.value;
+            picker.disabled = false;
+            onUpdate(picker.value);
+          });
+          text.addEventListener("input", () => {
+            const next = text.value.trim();
+            const nextColor = parseColor(next);
+            picker.disabled = !nextColor && next !== "";
+            if (nextColor) picker.value = nextColor;
+            onUpdate(next);
+          });
+          wrapper.append(picker, text);
+          return wrapper;
+        }
+
+        function createOpacityControl(attr, value, onUpdate) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "range-control";
+          const range = document.createElement("input");
+          range.type = "range";
+          range.min = "0";
+          range.max = "1";
+          range.step = "0.01";
+          range.setAttribute("aria-label", `${attr} slider`);
+          const number = document.createElement("input");
+          number.type = "number";
+          number.min = "0";
+          number.max = "1";
+          number.step = "0.01";
+          number.setAttribute("aria-label", attr);
+          const normalized = clamp(Number(value ?? 1), 0, 1);
+          range.value = Number.isFinite(normalized) ? normalized : 1;
+          number.value = value ?? "";
+
+          range.addEventListener("input", () => {
+            number.value = range.value;
+            onUpdate(range.value);
+          });
+          number.addEventListener("input", () => {
+            const next = clamp(Number(number.value), 0, 1);
+            if (Number.isFinite(next)) range.value = next;
+            onUpdate(number.value);
+          });
+          wrapper.append(range, number);
+          return wrapper;
+        }
+
+        function parseColor(value) {
+          if (!value || value === "none" || value.startsWith("url(")) return "";
+          const probe = document.createElement("span");
+          probe.style.color = "";
+          probe.style.color = value;
+          if (!probe.style.color) return "";
+          document.body.append(probe);
+          const rgb = getComputedStyle(probe).color;
+          probe.remove();
+          const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          if (!match) return "";
+          return `#${[match[1], match[2], match[3]].map((part) => Number(part).toString(16).padStart(2, "0")).join("")}`;
+        }
+
+        function clamp(value, min, max) {
+          if (!Number.isFinite(value)) return value;
+          return Math.min(max, Math.max(min, value));
+        }
+
+        function updateAttributeLive(attr, value) {
+          if (!state.selected) return;
+          if (value.trim() === "") {
+            state.selected.removeAttribute(attr);
+          } else {
+            state.selected.setAttribute(attr, value.trim());
+          }
+          if (state.selected.tagName.toLowerCase() === "path") {
+            state.parsedPath = parsePath(
+              state.selected.getAttribute("d") || "",
+            );
+          }
+          renderSelectionSummary();
+          renderOverlay();
+          renderPathPanel();
+          refreshMarkup();
+        }
+
+        function renderPathPanel() {
+          const el = state.selected;
+          const isPath = el?.tagName.toLowerCase() === "path";
+          [
+            els.pathSummarySection,
+            els.pathDataSection,
+            els.pathSegmentsSection,
+          ].forEach((section) => {
+            section.hidden = !isPath;
+          });
+          if (document.activeElement !== els.pathData) {
+            els.pathData.value = isPath ? el.getAttribute("d") || "" : "";
+          }
+          els.pathData.disabled = !isPath;
+          els.segments.innerHTML = "";
+          els.pathActions.innerHTML = "";
+
+          if (!isPath) {
+            els.closePathBtn.disabled = true;
+            els.closePathBtn.hidden = true;
+            return;
+          }
+
+          state.parsedPath = parsePath(el.getAttribute("d") || "");
+          const closed = isPathClosed(state.parsedPath);
+          els.closePathBtn.disabled = closed;
+          els.closePathBtn.hidden = closed;
+          const length =
+            typeof el.getTotalLength === "function"
+              ? round(el.getTotalLength(), 2)
+              : 0;
+          const pointCount = pathHandles(state.parsedPath).filter(
+            (handle) => handle.role === "end",
+          ).length;
+          els.pathSummary.innerHTML = `<strong>${state.parsedPath.length}</strong> commands · <strong>${pointCount}</strong> editable nodes · <strong>${length}</strong>px drawn length`;
+          renderPathActions();
+
+          state.parsedPath.forEach((segment, index) => {
+            const item = document.createElement("div");
+            item.className = "segment";
+            item.classList.toggle(
+              "active",
+              state.selectedNode?.segmentIndex === index,
+            );
+            const pick = document.createElement("button");
+            pick.type = "button";
+            pick.className = "segment-pick";
+            pick.textContent = `${index + 1}. ${segment.cmd} ${segment.values.map(fmt).join(" ")}`;
+            pick.addEventListener("click", () => {
+              const handle = pathHandles(state.parsedPath).find(
+                (entry) => entry.segmentIndex === index && entry.role === "end",
+              );
+              if (handle) state.selectedNode = handle;
+              renderOverlay();
+              renderPathPanel();
+            });
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "segment-delete";
+            remove.disabled = segment.cmd === "M";
+            remove.setAttribute("aria-label", `Delete segment ${index + 1}`);
+            remove.title =
+              segment.cmd === "M"
+                ? "The starting move segment cannot be deleted"
+                : "Delete segment";
+            remove.innerHTML = `<svg viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 14h10l1-14"></path><path d="M9 7V4h6v3"></path></svg>`;
+            remove.addEventListener("click", (event) => {
+              event.stopPropagation();
+              deletePathSegment(index);
+            });
+            item.append(pick, remove);
+            els.segments.append(item);
+          });
+        }
+
+        function renderPathActions() {
+          const start = firstPathPoint(state.parsedPath);
+          const end = lastPathPoint(state.parsedPath);
+          [
+            ["At start", "start", start],
+            ["At end", "end", end],
+          ].forEach(([title, endName, point]) => {
+            if (!point) return;
+            const group = document.createElement("div");
+            group.className = "path-action-group";
+            const heading = document.createElement("div");
+            heading.className = "path-action-title";
+            heading.textContent = title;
+            const row = document.createElement("div");
+            row.className = "mini-row";
+            [
+              ["line", "Line"],
+              ["cubic", "Curve"],
+              ["quadratic", "Quad"],
+              ["arc", "Arc"],
+            ].forEach(([type, label]) => {
+              const button = document.createElement("button");
+              button.type = "button";
+              button.className = "btn";
+              button.textContent = `+ ${label}`;
+              button.addEventListener("click", () =>
+                addPathSegmentAtEnd(endName, type),
+              );
+              row.append(button);
+            });
+            group.append(heading, row);
+            els.pathActions.append(group);
+          });
+        }
+
+        function syncPathDataFromInput() {
+          if (
+            !state.selected ||
+            state.selected.tagName.toLowerCase() !== "path"
+          )
+            return;
+          state.selected.setAttribute("d", els.pathData.value.trim());
+          state.parsedPath = parsePath(state.selected.getAttribute("d") || "");
+          state.selectedNode = null;
+          renderSelectionSummary();
+          renderOverlay();
+          renderPathPanel();
+          refreshMarkup();
+        }
+
+        function deletePathSegment(index) {
+          if (!ensureSelectedPath()) return;
+          const segment = state.parsedPath[index];
+          if (!segment || segment.cmd === "M") {
+            toast("The starting move segment cannot be deleted");
+            return;
+          }
+          state.parsedPath.splice(index, 1);
+          state.selected.setAttribute("d", serializePath(state.parsedPath));
+          state.selectedNode = null;
+          afterGeometryChange();
+          toast("Path segment deleted", "good");
+        }
+
+        function isPathClosed(segments) {
+          return segments.some((segment) => segment.cmd === "Z");
+        }
+
+        function renderOverlay() {
+          els.overlayLayer.innerHTML = "";
+          const el = state.selected;
+          if (!el) return;
+
+          const box = safeBBox(el);
+          if (box.width || box.height) {
+            els.overlayLayer.append(
+              createSvgElement("rect", {
+                class: "selection-box",
+                x: box.x,
+                y: box.y,
+                width: box.width,
+                height: box.height,
+              }),
+            );
+          }
+
+          if (el.tagName.toLowerCase() !== "path") return;
+          state.parsedPath = parsePath(el.getAttribute("d") || "");
+          const handles = pathHandles(state.parsedPath);
+          const bySegment = new Map();
+          handles.forEach((handle) => {
+            if (!bySegment.has(handle.segmentIndex))
+              bySegment.set(handle.segmentIndex, []);
+            bySegment.get(handle.segmentIndex).push(handle);
+          });
+
+          bySegment.forEach((group) => {
+            const end = group.find((handle) => handle.role === "end");
+            group
+              .filter((handle) => handle.role === "ctrl")
+              .forEach((ctrl) => {
+                if (end) {
+                  els.overlayLayer.append(
+                    createSvgElement("line", {
+                      class: "handle-line",
+                      x1: ctrl.x,
+                      y1: ctrl.y,
+                      x2: end.x,
+                      y2: end.y,
+                    }),
+                  );
+                }
+              });
+          });
+
+          handles.forEach((handle) => {
+            const circle = createSvgElement("circle", {
+              class: `${handle.role === "ctrl" ? "ctrl-handle" : "node-handle"} ${sameHandle(handle, state.selectedNode) ? "active" : ""}`,
+              cx: handle.x,
+              cy: handle.y,
+              r: handle.role === "ctrl" ? 5 : 6,
+              "data-segment": handle.segmentIndex,
+              "data-role": handle.role,
+              "data-offset": handle.offset,
+              "data-x-offset": handle.xOffset,
+              "data-y-offset": handle.yOffset,
+            });
+            els.overlayLayer.append(circle);
+          });
+        }
+
+        function afterGeometryChange() {
+          if (state.selected?.tagName.toLowerCase() === "path") {
+            state.parsedPath = parsePath(
+              state.selected.getAttribute("d") || "",
+            );
+          }
+          renderOverlay();
+          renderInspector();
+          refreshMarkup();
+        }
+
+        function safeBBox(el) {
+          try {
+            return el.getBBox();
+          } catch {
+            return { x: 0, y: 0, width: 0, height: 0 };
+          }
+        }
+
+        function escapeHtml(value) {
+          return String(value).replace(
+            /[&<>"']/g,
+            (char) =>
+              ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;",
+              })[char],
+          );
+        }
+
+        function toast(message, kind = "") {
+          els.toast.textContent = message;
+          els.toast.className = `toast show ${kind}`;
+          clearTimeout(toast.timer);
+          toast.timer = setTimeout(
+            () => els.toast.classList.remove("show"),
+            1800,
+          );
+        }
+
+        function refreshMarkup(force = false) {
+          if (state.suppressMarkupRefresh) return;
+          if (!force && document.activeElement === els.markup) {
+            scheduleHistoryCommit();
+            return;
+          }
+          els.markup.value = serializeSvg();
+          scheduleHistoryCommit();
+        }
+
+        function serializeSvg() {
+          const clone = document.createElementNS(SVG_NS, "svg");
+          clone.setAttribute("xmlns", SVG_NS);
+          clone.setAttribute("viewBox", state.viewBox.map(fmt).join(" "));
+          clone.setAttribute("width", fmt(state.viewBox[2]));
+          clone.setAttribute("height", fmt(state.viewBox[3]));
+          Array.from(els.artLayer.childNodes).forEach((node) =>
+            clone.appendChild(node.cloneNode(true)),
+          );
+          return new XMLSerializer()
+            .serializeToString(clone)
+            .replace(/></g, ">\n<");
+        }
+
+        function importMarkup(markup) {
+          const doc = new DOMParser().parseFromString(markup, "image/svg+xml");
+          const parserError = doc.querySelector("parsererror");
+          const svg = doc.querySelector("svg");
+          if (parserError || !svg) {
+            throw new Error("That does not look like valid SVG markup.");
+          }
+
+          const viewBox = svg.getAttribute("viewBox");
+          if (viewBox) {
+            const values = viewBox
+              .trim()
+              .split(/[\s,]+/)
+              .map(Number);
+            if (values.length === 4 && values.every(Number.isFinite))
+              setViewBox(values);
+          } else {
+            const width =
+              parseFloat(svg.getAttribute("width")) || state.viewBox[2];
+            const height =
+              parseFloat(svg.getAttribute("height")) || state.viewBox[3];
+            setViewBox([0, 0, width, height]);
+          }
+
+          els.artLayer.innerHTML = "";
+          Array.from(svg.childNodes).forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              els.artLayer.appendChild(document.importNode(node, true));
+            }
+          });
+          selectElement(null);
+          refreshMarkup();
+        }
+
+        function isSvgMarkup(value) {
+          if (!value || !value.trim().startsWith("<")) return false;
+          try {
+            const doc = new DOMParser().parseFromString(value, "image/svg+xml");
+            return (
+              !doc.querySelector("parsererror") &&
+              Boolean(doc.querySelector("svg"))
+            );
+          } catch {
+            return false;
+          }
+        }
+
+        async function importFile(file) {
+          if (!file) return;
+          importMarkup(await file.text());
+          toast(`Imported ${file.name || "SVG"}`, "good");
+        }
+
+        async function updateClipboardImportButton() {
+          if (!navigator.clipboard?.readText) return;
+          try {
+            const text = await navigator.clipboard.readText();
+            els.clipboardImportBtn.hidden = !isSvgMarkup(text);
+          } catch {
+            els.clipboardImportBtn.hidden = true;
+          }
+        }
+
+        async function importFromClipboard() {
+          try {
+            const text = await navigator.clipboard.readText();
+            if (!isSvgMarkup(text)) {
+              toast("Clipboard does not contain SVG markup", "bad");
+              return;
+            }
+            importMarkup(text);
+            toast("Imported SVG from clipboard", "good");
+            els.clipboardImportBtn.hidden = true;
+          } catch {
+            toast("Clipboard read was blocked", "bad");
+          }
+        }
+
+        function syncMarkupFromInput() {
+          clearTimeout(state.markupTimer);
+          state.markupTimer = setTimeout(() => {
+            try {
+              state.suppressMarkupRefresh = true;
+              importMarkup(els.markup.value);
+            } catch (error) {
+              return;
+            } finally {
+              state.suppressMarkupRefresh = false;
+            }
+            scheduleHistoryCommit();
+          }, 300);
+        }
+
+        function scheduleHistoryCommit() {
+          if (!state.historyReady || state.isRestoring) return;
+          clearTimeout(state.historyTimer);
+          state.historyTimer = setTimeout(commitHistory, 250);
+        }
+
+        function commitHistory() {
+          if (!state.historyReady || state.isRestoring) return;
+          clearTimeout(state.historyTimer);
+          const snapshot = serializeSvg();
+          if (state.history[state.history.length - 1] === snapshot) return;
+          state.history.push(snapshot);
+          state.redo = [];
+          if (state.history.length > 100) state.history.shift();
+        }
+
+        function resetHistory() {
+          clearTimeout(state.historyTimer);
+          state.history = [serializeSvg()];
+          state.redo = [];
+          state.historyReady = true;
+        }
+
+        function restoreSnapshot(snapshot) {
+          state.isRestoring = true;
+          try {
+            importMarkup(snapshot);
+            refreshMarkup(true);
+          } finally {
+            state.isRestoring = false;
+          }
+        }
+
+        function undo() {
+          commitHistory();
+          if (state.history.length <= 1) return;
+          const current = state.history.pop();
+          state.redo.push(current);
+          restoreSnapshot(state.history[state.history.length - 1]);
+          toast("Undone", "good");
+        }
+
+        function redo() {
+          if (!state.redo.length) return;
+          const snapshot = state.redo.pop();
+          state.history.push(snapshot);
+          restoreSnapshot(snapshot);
+          toast("Redone", "good");
+        }
+
+        function downloadSvg() {
+          const blob = new Blob([serializeSvg()], { type: "image/svg+xml" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "svg-tool-export.svg";
+          link.click();
+          URL.revokeObjectURL(url);
+          toast("Exported SVG file", "good");
+        }
+
+        function downloadDataUrl(dataUrl, filename) {
+          const link = document.createElement("a");
+          link.href = dataUrl;
+          link.download = filename;
+          link.click();
+        }
+
+        function downloadRaster(format) {
+          const svg = serializeSvg();
+          const blob = new Blob([svg], { type: "image/svg+xml" });
+          const url = URL.createObjectURL(blob);
+          const image = new Image();
+          const width = Math.max(1, Math.round(state.viewBox[2]));
+          const height = Math.max(1, Math.round(state.viewBox[3]));
+          image.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (format === "jpeg") {
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, width, height);
+            }
+            ctx.drawImage(image, 0, 0, width, height);
+            URL.revokeObjectURL(url);
+            const type = format === "jpeg" ? "image/jpeg" : "image/png";
+            const ext = format === "jpeg" ? "jpg" : "png";
+            downloadDataUrl(
+              canvas.toDataURL(type, 0.92),
+              `svg-tool-export.${ext}`,
+            );
+            toast(`Exported ${ext.toUpperCase()} file`, "good");
+          };
+          image.onerror = () => {
+            URL.revokeObjectURL(url);
+            toast("Could not render this SVG for raster export", "bad");
+          };
+          image.src = url;
+        }
+
+        async function copySvg() {
+          try {
+            await navigator.clipboard.writeText(serializeSvg());
+            toast("SVG markup copied", "good");
+          } catch {
+            els.markup.select();
+            document.execCommand("copy");
+            toast("SVG markup copied from the markup panel", "good");
+          }
+        }
+
+        function startShape(tool, point) {
+          const common = {
+            fill: tool === "line" ? "none" : "#7c5cff",
+            stroke: "#22d3ee",
+            "stroke-width": 4,
+          };
+          let el;
+          if (tool === "rect") {
+            el = createSvgElement("rect", {
+              ...common,
+              x: point.x,
+              y: point.y,
+              width: 1,
+              height: 1,
+              rx: 12,
+            });
+          } else if (tool === "ellipse") {
+            el = createSvgElement("ellipse", {
+              ...common,
+              cx: point.x,
+              cy: point.y,
+              rx: 1,
+              ry: 1,
+            });
+          } else if (tool === "line") {
+            el = createSvgElement("line", {
+              ...common,
+              x1: point.x,
+              y1: point.y,
+              x2: point.x,
+              y2: point.y,
+              "stroke-linecap": "round",
+            });
+          } else if (tool === "text") {
+            const content = prompt("Text content", "Text");
+            if (!content) return;
+            el = createSvgElement("text", {
+              x: point.x,
+              y: point.y,
+              fill: "#f8fafc",
+              "font-size": 44,
+              "font-family": "Inter, system-ui, sans-serif",
+              "font-weight": 800,
+            });
+            el.textContent = content;
+            els.artLayer.append(el);
+            selectElement(el);
+            setTool("select");
+            return;
+          }
+          els.artLayer.append(el);
+          state.drag = { type: "draw-shape", el, start: point, tool };
+          document.body.classList.add("dragging-canvas");
+          selectElement(el);
+        }
+
+        function updateShapeDrag(point) {
+          const drag = state.drag;
+          if (!drag || drag.type !== "draw-shape") return;
+          const { el, start, tool } = drag;
+          const x = Math.min(start.x, point.x);
+          const y = Math.min(start.y, point.y);
+          const width = Math.abs(point.x - start.x);
+          const height = Math.abs(point.y - start.y);
+
+          if (tool === "rect") {
+            el.setAttribute("x", fmt(x));
+            el.setAttribute("y", fmt(y));
+            el.setAttribute("width", fmt(width));
+            el.setAttribute("height", fmt(height));
+          } else if (tool === "ellipse") {
+            el.setAttribute("cx", fmt(x + width / 2));
+            el.setAttribute("cy", fmt(y + height / 2));
+            el.setAttribute("rx", fmt(width / 2));
+            el.setAttribute("ry", fmt(height / 2));
+          } else if (tool === "line") {
+            el.setAttribute("x2", fmt(point.x));
+            el.setAttribute("y2", fmt(point.y));
+          }
+          renderOverlay();
+        }
+
+        function startElementDrag(event, el) {
+          event.preventDefault();
+          const point = pointFromEvent(event);
+          state.drag = {
+            type: "move-element",
+            el,
+            last: point,
+          };
+          els.canvas.classList.add("grabbing");
+          document.body.classList.add("dragging-canvas");
+        }
+
+        function startPan(event) {
+          event.preventDefault();
+          if (!state.viewport) resetViewport();
+          state.drag = {
+            type: "pan",
+            clientX: event.clientX,
+            clientY: event.clientY,
+            viewport: { ...state.viewport },
+          };
+          els.canvas.classList.add("grabbing");
+          document.body.classList.add("dragging-canvas");
+        }
+
+        function moveSelectedElement(point) {
+          const drag = state.drag;
+          if (!drag || drag.type !== "move-element") return;
+          const dx = point.x - drag.last.x;
+          const dy = point.y - drag.last.y;
+          translateElement(drag.el, dx, dy);
+          drag.last = point;
+          afterGeometryChange();
+        }
+
+        function moveViewport(event) {
+          const drag = state.drag;
+          if (!drag || drag.type !== "pan") return;
+          const scaleX = drag.viewport.width / els.canvas.clientWidth;
+          const scaleY = drag.viewport.height / els.canvas.clientHeight;
+          state.viewport.x =
+            drag.viewport.x - (event.clientX - drag.clientX) * scaleX;
+          state.viewport.y =
+            drag.viewport.y - (event.clientY - drag.clientY) * scaleY;
+          applyViewport();
+          renderOverlay();
+        }
+
+        function translateElement(el, dx, dy) {
+          const tag = el.tagName.toLowerCase();
+          const add = (attr, delta) => {
+            if (el.hasAttribute(attr))
+              el.setAttribute(
+                attr,
+                fmt((parseFloat(el.getAttribute(attr)) || 0) + delta),
+              );
+          };
+
+          if (tag === "rect" || tag === "image" || tag === "text") {
+            add("x", dx);
+            add("y", dy);
+          } else if (tag === "circle" || tag === "ellipse") {
+            add("cx", dx);
+            add("cy", dy);
+          } else if (tag === "line") {
+            add("x1", dx);
+            add("y1", dy);
+            add("x2", dx);
+            add("y2", dy);
+          } else if (tag === "path") {
+            const segments = parsePath(el.getAttribute("d") || "");
+            shiftPath(segments, dx, dy);
+            el.setAttribute("d", serializePath(segments));
+          } else if (tag === "polyline" || tag === "polygon") {
+            const points = (el.getAttribute("points") || "")
+              .trim()
+              .split(/\s+/)
+              .map((pair) => {
+                const [x, y] = pair.split(",").map(Number);
+                return Number.isFinite(x) && Number.isFinite(y)
+                  ? `${fmt(x + dx)},${fmt(y + dy)}`
+                  : pair;
+              });
+            el.setAttribute("points", points.join(" "));
+          } else {
+            const existing = el.getAttribute("transform") || "";
+            el.setAttribute(
+              "transform",
+              `${existing} translate(${fmt(dx)} ${fmt(dy)})`.trim(),
+            );
+          }
+        }
+
+        function shiftPath(segments, dx, dy) {
+          segments.forEach((segment) => {
+            if (segment.cmd === "M" || segment.cmd === "L") {
+              segment.values[0] += dx;
+              segment.values[1] += dy;
+            } else if (segment.cmd === "C") {
+              [0, 2, 4].forEach((index) => (segment.values[index] += dx));
+              [1, 3, 5].forEach((index) => (segment.values[index] += dy));
+            } else if (segment.cmd === "Q") {
+              [0, 2].forEach((index) => (segment.values[index] += dx));
+              [1, 3].forEach((index) => (segment.values[index] += dy));
+            } else if (segment.cmd === "A") {
+              segment.values[5] += dx;
+              segment.values[6] += dy;
+            }
+          });
+        }
+
+        function startNodeDrag(event, handleEl) {
+          if (
+            !state.selected ||
+            state.selected.tagName.toLowerCase() !== "path"
+          )
+            return;
+          const segmentIndex = Number(handleEl.dataset.segment);
+          const handle = pathHandles(state.parsedPath).find((item) => {
+            return (
+              item.segmentIndex === segmentIndex &&
+              item.role === handleEl.dataset.role &&
+              String(item.xOffset) === handleEl.dataset.xOffset &&
+              String(item.yOffset) === handleEl.dataset.yOffset
+            );
+          });
+          if (!handle) return;
+          state.selectedNode = handle;
+          state.drag = {
+            type: "move-node",
+            handle,
+          };
+          els.canvas.classList.add("grabbing");
+          document.body.classList.add("dragging-canvas");
+          renderPathPanel();
+        }
+
+        function moveNode(point) {
+          const drag = state.drag;
+          if (!drag || drag.type !== "move-node") return;
+          const segment = state.parsedPath[drag.handle.segmentIndex];
+          segment.values[drag.handle.xOffset] = point.x;
+          segment.values[drag.handle.yOffset] = point.y;
+          state.selected.setAttribute("d", serializePath(state.parsedPath));
+          state.selectedNode = { ...drag.handle, x: point.x, y: point.y };
+          renderOverlay();
+          renderPathPanel();
+          refreshMarkup();
+        }
+
+        function firstPathPoint(segments) {
+          const first = segments.find((segment) => segment.cmd === "M");
+          return first ? { x: first.values[0], y: first.values[1] } : null;
+        }
+
+        function lastPathPoint(segments) {
+          for (let index = segments.length - 1; index >= 0; index -= 1) {
+            const end = segmentEnd(segments[index]);
+            if (end) return end;
+          }
+          return null;
+        }
+
+        function makeSegmentFrom(from, direction, type) {
+          const distance = 54 * direction;
+          const end = { x: from.x + distance, y: from.y };
+          if (type === "line") return { cmd: "L", values: [end.x, end.y] };
+          if (type === "quadratic")
+            return {
+              cmd: "Q",
+              values: [from.x + distance / 2, from.y - 36, end.x, end.y],
+            };
+          if (type === "arc")
+            return {
+              cmd: "A",
+              values: [32, 32, 0, 0, direction > 0 ? 1 : 0, end.x, end.y],
+            };
+          return {
+            cmd: "C",
+            values: [
+              from.x + distance / 3,
+              from.y - 40,
+              from.x + (distance * 2) / 3,
+              from.y + 40,
+              end.x,
+              end.y,
+            ],
+          };
+        }
+
+        function addPathSegmentAtEnd(endName, type) {
+          if (!ensureSelectedPath()) return;
+          const closed = isPathClosed(state.parsedPath);
+          if (closed) {
+            state.parsedPath = state.parsedPath.filter(
+              (segment) => segment.cmd !== "Z",
+            );
+          }
+          if (endName === "start") {
+            const start = firstPathPoint(state.parsedPath);
+            if (!start) return;
+            const segment = makeSegmentFrom(start, -1, type);
+            const newStart = segmentEnd(segment);
+            state.parsedPath[0] = {
+              cmd: "M",
+              values: [newStart.x, newStart.y],
+            };
+            segment.values = segment.values.map((value, index) => {
+              if (segment.cmd === "A")
+                return index === 5 ? start.x : index === 6 ? start.y : value;
+              return index >= segment.values.length - 2
+                ? index % 2 === 0
+                  ? start.x
+                  : start.y
+                : value;
+            });
+            state.parsedPath.splice(1, 0, segment);
+            state.selectedNode = {
+              segmentIndex: 0,
+              role: "end",
+              xOffset: 0,
+              yOffset: 1,
+              x: newStart.x,
+              y: newStart.y,
+            };
+          } else {
+            const end = lastPathPoint(state.parsedPath);
+            if (!end) return;
+            const segment = makeSegmentFrom(end, 1, type);
+            state.parsedPath.push(segment);
+            const next = segmentEnd(segment);
+            state.selectedNode = {
+              segmentIndex: state.parsedPath.length - 1,
+              role: "end",
+              xOffset: segment.cmd === "A" ? 5 : segment.values.length - 2,
+              yOffset: segment.cmd === "A" ? 6 : segment.values.length - 1,
+              x: next.x,
+              y: next.y,
+            };
+          }
+          state.selected.setAttribute("d", serializePath(state.parsedPath));
+          afterGeometryChange();
+          toast(
+            `${type === "cubic" ? "Curve" : type[0].toUpperCase() + type.slice(1)} segment added`,
+            "good",
+          );
+        }
+
+        function deleteSelectedNode() {
+          if (!ensureSelectedPath()) return;
+          const node = state.selectedNode;
+          if (!node) {
+            toast("Select a path node first");
+            return;
+          }
+          const segment = state.parsedPath[node.segmentIndex];
+          if (!segment || segment.cmd === "M") {
+            toast("The starting node cannot be deleted");
+            return;
+          }
+          state.parsedPath.splice(node.segmentIndex, 1);
+          state.selected.setAttribute("d", serializePath(state.parsedPath));
+          state.selectedNode = null;
+          afterGeometryChange();
+          toast("Path node deleted", "good");
+        }
+
+        function ensureSelectedPath() {
+          if (
+            !state.selected ||
+            state.selected.tagName.toLowerCase() !== "path"
+          ) {
+            toast("Select a path first");
+            return false;
+          }
+          state.parsedPath = parsePath(state.selected.getAttribute("d") || "");
+          return true;
+        }
+
+        function segmentEnd(segment) {
+          if (segment.cmd === "M" || segment.cmd === "L")
+            return { x: segment.values[0], y: segment.values[1] };
+          if (segment.cmd === "C")
+            return { x: segment.values[4], y: segment.values[5] };
+          if (segment.cmd === "Q")
+            return { x: segment.values[2], y: segment.values[3] };
+          if (segment.cmd === "A")
+            return { x: segment.values[5], y: segment.values[6] };
+          return null;
+        }
+
+        function pathHandles(segments) {
+          const handles = [];
+          segments.forEach((segment, segmentIndex) => {
+            if (segment.cmd === "M" || segment.cmd === "L") {
+              handles.push({
+                segmentIndex,
+                role: "end",
+                offset: 0,
+                xOffset: 0,
+                yOffset: 1,
+                x: segment.values[0],
+                y: segment.values[1],
+              });
+            } else if (segment.cmd === "C") {
+              handles.push({
+                segmentIndex,
+                role: "ctrl",
+                offset: 0,
+                xOffset: 0,
+                yOffset: 1,
+                x: segment.values[0],
+                y: segment.values[1],
+              });
+              handles.push({
+                segmentIndex,
+                role: "ctrl",
+                offset: 2,
+                xOffset: 2,
+                yOffset: 3,
+                x: segment.values[2],
+                y: segment.values[3],
+              });
+              handles.push({
+                segmentIndex,
+                role: "end",
+                offset: 4,
+                xOffset: 4,
+                yOffset: 5,
+                x: segment.values[4],
+                y: segment.values[5],
+              });
+            } else if (segment.cmd === "Q") {
+              handles.push({
+                segmentIndex,
+                role: "ctrl",
+                offset: 0,
+                xOffset: 0,
+                yOffset: 1,
+                x: segment.values[0],
+                y: segment.values[1],
+              });
+              handles.push({
+                segmentIndex,
+                role: "end",
+                offset: 2,
+                xOffset: 2,
+                yOffset: 3,
+                x: segment.values[2],
+                y: segment.values[3],
+              });
+            } else if (segment.cmd === "A") {
+              handles.push({
+                segmentIndex,
+                role: "end",
+                offset: 5,
+                xOffset: 5,
+                yOffset: 6,
+                x: segment.values[5],
+                y: segment.values[6],
+              });
+            }
+          });
+          return handles;
+        }
+
+        function sameHandle(a, b) {
+          return (
+            a &&
+            b &&
+            a.segmentIndex === b.segmentIndex &&
+            a.role === b.role &&
+            a.xOffset === b.xOffset &&
+            a.yOffset === b.yOffset
+          );
+        }
+
+        function parsePath(d) {
+          const tokens =
+            d.match(/[a-zA-Z]|[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi) || [];
+          const lengths = {
+            M: 2,
+            L: 2,
+            H: 1,
+            V: 1,
+            C: 6,
+            S: 4,
+            Q: 4,
+            T: 2,
+            A: 7,
+            Z: 0,
+          };
+          const segments = [];
+          let i = 0;
+          let cmd = "";
+          let x = 0;
+          let y = 0;
+          let startX = 0;
+          let startY = 0;
+          let prevC = null;
+          let prevQ = null;
+
+          const isCommand = (token) => /^[a-zA-Z]$/.test(token);
+          const read = () => Number(tokens[i++]);
+
+          while (i < tokens.length) {
+            if (isCommand(tokens[i])) cmd = tokens[i++];
+            if (!cmd) break;
+
+            const upper = cmd.toUpperCase();
+            const relative = cmd !== upper;
+            const length = lengths[upper];
+            let firstMoveForCommand = upper === "M";
+            if (upper === "Z") {
+              segments.push({ cmd: "Z", values: [] });
+              x = startX;
+              y = startY;
+              prevC = null;
+              prevQ = null;
+              continue;
+            }
+
+            while (i < tokens.length && !isCommand(tokens[i])) {
+              if (i + length > tokens.length) break;
+              if (upper === "M") {
+                let nx = read();
+                let ny = read();
+                if (relative) {
+                  nx += x;
+                  ny += y;
+                }
+                const command = firstMoveForCommand ? "M" : "L";
+                segments.push({ cmd: command, values: [nx, ny] });
+                if (firstMoveForCommand) {
+                  startX = nx;
+                  startY = ny;
+                  firstMoveForCommand = false;
+                }
+                x = nx;
+                y = ny;
+                cmd = relative ? "l" : "L";
+              } else if (upper === "L") {
+                let nx = read();
+                let ny = read();
+                if (relative) {
+                  nx += x;
+                  ny += y;
+                }
+                segments.push({ cmd: "L", values: [nx, ny] });
+                x = nx;
+                y = ny;
+              } else if (upper === "H") {
+                let nx = read();
+                if (relative) nx += x;
+                segments.push({ cmd: "L", values: [nx, y] });
+                x = nx;
+              } else if (upper === "V") {
+                let ny = read();
+                if (relative) ny += y;
+                segments.push({ cmd: "L", values: [x, ny] });
+                y = ny;
+              } else if (upper === "C") {
+                const values = [read(), read(), read(), read(), read(), read()];
+                if (relative) {
+                  values[0] += x;
+                  values[1] += y;
+                  values[2] += x;
+                  values[3] += y;
+                  values[4] += x;
+                  values[5] += y;
+                }
+                segments.push({ cmd: "C", values });
+                x = values[4];
+                y = values[5];
+                prevC = { x: values[2], y: values[3] };
+                prevQ = null;
+              } else if (upper === "S") {
+                const values = [read(), read(), read(), read()];
+                if (relative) {
+                  values[0] += x;
+                  values[1] += y;
+                  values[2] += x;
+                  values[3] += y;
+                }
+                const c1 = prevC
+                  ? { x: x * 2 - prevC.x, y: y * 2 - prevC.y }
+                  : { x, y };
+                const cubic = [
+                  c1.x,
+                  c1.y,
+                  values[0],
+                  values[1],
+                  values[2],
+                  values[3],
+                ];
+                segments.push({ cmd: "C", values: cubic });
+                x = values[2];
+                y = values[3];
+                prevC = { x: values[0], y: values[1] };
+                prevQ = null;
+              } else if (upper === "Q") {
+                const values = [read(), read(), read(), read()];
+                if (relative) {
+                  values[0] += x;
+                  values[1] += y;
+                  values[2] += x;
+                  values[3] += y;
+                }
+                segments.push({ cmd: "Q", values });
+                x = values[2];
+                y = values[3];
+                prevQ = { x: values[0], y: values[1] };
+                prevC = null;
+              } else if (upper === "T") {
+                const values = [read(), read()];
+                if (relative) {
+                  values[0] += x;
+                  values[1] += y;
+                }
+                const q = prevQ
+                  ? { x: x * 2 - prevQ.x, y: y * 2 - prevQ.y }
+                  : { x, y };
+                segments.push({
+                  cmd: "Q",
+                  values: [q.x, q.y, values[0], values[1]],
+                });
+                x = values[0];
+                y = values[1];
+                prevQ = q;
+                prevC = null;
+              } else if (upper === "A") {
+                const values = [
+                  read(),
+                  read(),
+                  read(),
+                  read(),
+                  read(),
+                  read(),
+                  read(),
+                ];
+                if (relative) {
+                  values[5] += x;
+                  values[6] += y;
+                }
+                segments.push({ cmd: "A", values });
+                x = values[5];
+                y = values[6];
+                prevC = null;
+                prevQ = null;
+              } else {
+                i += length;
+              }
+
+              if (upper !== "C" && upper !== "S")
+                prevC = upper === "C" || upper === "S" ? prevC : null;
+              if (upper !== "Q" && upper !== "T")
+                prevQ = upper === "Q" || upper === "T" ? prevQ : null;
+            }
+          }
+          return segments;
+        }
+
+        function serializePath(segments) {
+          return segments
+            .map((segment) => {
+              if (segment.cmd === "Z") return "Z";
+              return `${segment.cmd} ${segment.values.map(fmt).join(" ")}`;
+            })
+            .join(" ");
+        }
+
+        function beginPen(point) {
+          if (!state.drawing) {
+            const path = createSvgElement("path", {
+              d: `M ${fmt(point.x)} ${fmt(point.y)}`,
+              fill: "none",
+              stroke: "#7c5cff",
+              "stroke-width": 6,
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+            });
+            els.artLayer.append(path);
+            state.drawing = { tool: "pen", el: path, path, points: [point] };
+            selectElement(path);
+            toast("Click to add points. Esc finishes the path.");
+          } else {
+            state.drawing.points.push(point);
+            const d = `M ${state.drawing.points
+              .map((entry, index) => {
+                const coords = `${fmt(entry.x)} ${fmt(entry.y)}`;
+                return index === 0 ? coords : `L ${coords}`;
+              })
+              .join(" ")}`;
+            state.drawing.path.setAttribute("d", d);
+            afterGeometryChange();
+          }
+        }
+
+        function beginPointShape(tool, point) {
+          if (!state.drawing) {
+            const el = createSvgElement(tool, {
+              fill: tool === "polygon" ? "#7c5cff" : "none",
+              stroke: "#22d3ee",
+              "stroke-width": 4,
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              points: `${fmt(point.x)},${fmt(point.y)}`,
+            });
+            els.artLayer.append(el);
+            state.drawing = { tool, el, points: [point] };
+            selectElement(el);
+            toast(`Click to add ${tool} points. Esc or right-click finishes.`);
+            return;
+          }
+
+          state.drawing.points.push(point);
+          state.drawing.el.setAttribute(
+            "points",
+            state.drawing.points
+              .map((entry) => `${fmt(entry.x)},${fmt(entry.y)}`)
+              .join(" "),
+          );
+          afterGeometryChange();
+        }
+
+        function finishDrawing(showToast = true) {
+          if (!state.drawing) return;
+          const { tool, el, points } = state.drawing;
+          state.drawing = null;
+          if (
+            (tool === "polygon" || tool === "polyline") &&
+            points.length < 2
+          ) {
+            el.remove();
+            selectElement(null);
+            refreshMarkup();
+            return;
+          }
+          if (showToast)
+            toast(
+              `${tool === "pen" ? "Path" : tool[0].toUpperCase() + tool.slice(1)} finished`,
+              "good",
+            );
+          afterGeometryChange();
+        }
+
+        function deleteSelectedElement() {
+          if (!state.selected) return;
+          state.selected.remove();
+          selectElement(null);
+          refreshMarkup();
+          toast("Element deleted", "good");
+        }
+
+        function duplicateSelectedElement() {
+          if (!state.selected) return;
+          const clone = state.selected.cloneNode(true);
+          if (clone.hasAttribute("id"))
+            clone.setAttribute("id", `${clone.getAttribute("id")}-copy`);
+          translateElement(clone, 24, 24);
+          els.artLayer.append(clone);
+          selectElement(clone);
+          toast("Element duplicated", "good");
+        }
+
+        function clearCanvas() {
+          if (!confirm("Clear the current SVG?")) return;
+          els.artLayer.innerHTML = "";
+          selectElement(null);
+          refreshMarkup();
+          toast("Canvas cleared");
+        }
+
+        function handleCanvasPointerDown(event) {
+          if (event.button === 2) {
+            event.preventDefault();
+            finishDrawing();
+            return;
+          }
+          if (event.button === 1 || event.altKey) {
+            startPan(event);
+            return;
+          }
+          const overlayTarget = event.target.closest?.(
+            ".node-handle, .ctrl-handle",
+          );
+          if (overlayTarget) {
+            event.preventDefault();
+            startNodeDrag(event, overlayTarget);
+            return;
+          }
+
+          const point = pointFromEvent(event);
+          const artTarget = event.target.closest?.("#artLayer > *");
+
+          if (state.tool === "select") {
+            if (artTarget) {
+              selectElement(artTarget);
+              startElementDrag(event, artTarget);
+            } else {
+              selectElement(null);
+              startPan(event);
+            }
+          } else if (state.tool === "pen") {
+            beginPen(point);
+          } else if (state.tool === "polygon" || state.tool === "polyline") {
+            beginPointShape(state.tool, point);
+          } else {
+            startShape(state.tool, point);
+          }
+        }
+
+        function handleCanvasPointerMove(event) {
+          const point = pointFromEvent(event);
+          if (state.drag?.type === "move-element") moveSelectedElement(point);
+          if (state.drag?.type === "move-node") moveNode(point);
+          if (state.drag?.type === "draw-shape") updateShapeDrag(point);
+          if (state.drag?.type === "pan") moveViewport(event);
+        }
+
+        function handleCanvasPointerUp() {
+          if (state.drag?.type === "draw-shape") {
+            setTool("select");
+            refreshMarkup();
+          }
+          state.drag = null;
+          els.canvas.classList.remove("grabbing");
+          document.body.classList.remove("dragging-canvas");
+        }
+
+        function attachEvents() {
+          document.querySelectorAll(".tool").forEach((button) => {
+            button.addEventListener("click", () =>
+              setTool(button.dataset.tool),
+            );
+          });
+
+          els.tabs.forEach((tab) =>
+            tab.addEventListener("click", () => setPanel(tab.dataset.panel)),
+          );
+          els.canvas.addEventListener("pointerdown", handleCanvasPointerDown);
+          els.canvas.addEventListener("contextmenu", (event) => {
+            event.preventDefault();
+            finishDrawing();
+          });
+          els.canvas.addEventListener(
+            "wheel",
+            (event) => {
+              event.preventDefault();
+              zoomCanvas(
+                event.deltaY < 0 ? 1.12 : 1 / 1.12,
+                pointFromEvent(event),
+              );
+            },
+            { passive: false },
+          );
+          window.addEventListener("pointermove", handleCanvasPointerMove);
+          window.addEventListener("pointerup", handleCanvasPointerUp);
+
+          els.fileInput.addEventListener("change", async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+              await importFile(file);
+            } catch (error) {
+              toast(error.message, "bad");
+            } finally {
+              els.fileInput.value = "";
+            }
+          });
+
+          els.clipboardImportBtn.addEventListener("click", importFromClipboard);
+          els.downloadBtn.addEventListener("click", downloadSvg);
+          els.copyMarkupBtn.addEventListener("click", copySvg);
+          els.exportSvgBtn.addEventListener("click", downloadSvg);
+          els.exportPngBtn.addEventListener("click", () =>
+            downloadRaster("png"),
+          );
+          els.exportJpgBtn.addEventListener("click", () =>
+            downloadRaster("jpeg"),
+          );
+          els.clearBtn.addEventListener("click", clearCanvas);
+          els.zoomInBtn.addEventListener("click", () => zoomCanvas(1.2));
+          els.zoomOutBtn.addEventListener("click", () => zoomCanvas(1 / 1.2));
+          els.zoomResetBtn.addEventListener("click", () => {
+            resetViewport();
+            renderOverlay();
+          });
+          els.deleteElementBtn.addEventListener("click", deleteSelectedElement);
+          els.duplicateBtn.addEventListener("click", duplicateSelectedElement);
+          els.sampleBtn.addEventListener("click", () => {
+            importMarkup(sampleMarkup);
+            refreshMarkup(true);
+            toast("Sample loaded", "good");
+          });
+
+          const syncCanvasSize = () => {
+            const width = Number(els.viewWidth.value);
+            const height = Number(els.viewHeight.value);
+            if (
+              !Number.isFinite(width) ||
+              !Number.isFinite(height) ||
+              width < 1 ||
+              height < 1
+            )
+              return;
+            setViewBox([state.viewBox[0], state.viewBox[1], width, height]);
+            refreshMarkup();
+          };
+          els.viewWidth.addEventListener("input", syncCanvasSize);
+          els.viewHeight.addEventListener("input", syncCanvasSize);
+          els.pathData.addEventListener("input", syncPathDataFromInput);
+
+          els.closePathBtn.addEventListener("click", () => {
+            if (!ensureSelectedPath()) return;
+            if (isPathClosed(state.parsedPath)) return;
+            state.parsedPath.push({ cmd: "Z", values: [] });
+            state.selected.setAttribute("d", serializePath(state.parsedPath));
+            afterGeometryChange();
+            toast("Path closed", "good");
+          });
+
+          els.markup.addEventListener("input", syncMarkupFromInput);
+          els.markup.addEventListener("blur", () => refreshMarkup(true));
+
+          window.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            document.body.classList.add("drag-over");
+          });
+          window.addEventListener("dragleave", (event) => {
+            if (!event.relatedTarget)
+              document.body.classList.remove("drag-over");
+          });
+          window.addEventListener("drop", async (event) => {
+            event.preventDefault();
+            document.body.classList.remove("drag-over");
+            const file = event.dataTransfer?.files?.[0];
+            if (!file) return;
+            try {
+              await importFile(file);
+            } catch (error) {
+              toast(error.message, "bad");
+            }
+          });
+          window.addEventListener("focus", updateClipboardImportButton);
+          window.addEventListener("pointerdown", updateClipboardImportButton);
+          document.addEventListener("pointerdown", (event) => {
+            if (state.drawing && !event.target.closest?.(".stage-wrap, .rail"))
+              finishDrawing(false);
+          });
+
+          document.addEventListener("keydown", (event) => {
+            const key = event.key.toLowerCase();
+            const mod = event.metaKey || event.ctrlKey;
+            if (mod && key === "z") {
+              event.preventDefault();
+              if (event.shiftKey) redo();
+              else undo();
+              return;
+            }
+            if (mod && key === "y") {
+              event.preventDefault();
+              redo();
+              return;
+            }
+            if (event.target.matches("input, textarea")) return;
+            if (key === "v") setTool("select");
+            if (key === "p") setTool("pen");
+            if (event.key === "Escape") finishDrawing();
+            if (event.key === "Delete" || event.key === "Backspace") {
+              if (state.selectedNode) deleteSelectedNode();
+              else deleteSelectedElement();
+            }
+          });
+        }
+
+        function init() {
+          setViewBox(state.viewBox);
+          attachEvents();
+          importMarkup(sampleMarkup);
+          setTool("select");
+          refreshMarkup();
+          resetHistory();
+          updateClipboardImportButton();
+        }
+
+        init();
+      })();
+    </script>
+  </body>
+</html>
