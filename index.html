@@ -286,16 +286,17 @@
         border-color: var(--line-strong);
       }
 
-      [data-tip] {
-        position: relative;
-      }
-
       [data-tip]::after {
         content: attr(data-tip);
-        position: absolute;
+        position: fixed;
+        z-index: 1000;
+        position-anchor: auto;
+        position-area: bottom;
+        position-try-fallbacks: flip-block;
+        justify-self: anchor-center;
         width: max-content;
         max-width: min(220px, calc(100vw - 24px));
-        transform: translate(-50%, -4px);
+        margin: 3px;
         padding: 5px 7px;
         border-radius: 6px;
         background: #232a36;
@@ -305,15 +306,12 @@
         white-space: nowrap;
         pointer-events: none;
         opacity: 0;
-        transition:
-          opacity 140ms ease,
-          transform 140ms ease;
+        transition: opacity 0.2s;
       }
 
       [data-tip]:hover::after,
       [data-tip]:focus-visible::after {
         opacity: 1;
-        transform: translate(-50%, 0);
       }
 
       .info-icon::after {
@@ -323,25 +321,6 @@
         font-weight: 500;
         line-height: 1.35;
         white-space: normal;
-      }
-
-      @supports (position-anchor: auto) {
-        [data-tip]::after {
-          position: fixed;
-          left: auto;
-          top: auto;
-          position-anchor: auto;
-          position-area: bottom;
-          position-try-fallbacks: flip-block;
-          justify-self: anchor-center;
-          margin-top: 7px;
-          transform: translateY(-4px);
-        }
-
-        [data-tip]:hover::after,
-        [data-tip]:focus-visible::after {
-          transform: translateY(0);
-        }
       }
 
       .divider {
@@ -682,14 +661,11 @@
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        min-width: 0;
-        position: relative;
       }
 
       .info-icon {
         display: inline-grid;
         place-items: center;
-        position: relative;
         width: 14px;
         height: 14px;
         border: 1px solid var(--line-strong);
@@ -2692,12 +2668,17 @@
           toast(`Imported ${file.name || "SVG"}`, "good");
         }
 
+        let clipboardPermissionDenied = false;
+
         async function updateClipboardImportButton() {
-          if (!navigator.clipboard?.readText) return;
+          if (!navigator.clipboard?.readText || clipboardPermissionDenied)
+            return;
           try {
             const text = await navigator.clipboard.readText();
             els.clipboardImportBtn.hidden = !isSvgMarkup(text);
-          } catch {
+          } catch (err) {
+            if (err?.name === "NotAllowedError")
+              clipboardPermissionDenied = true;
             els.clipboardImportBtn.hidden = true;
           }
         }
