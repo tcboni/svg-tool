@@ -284,12 +284,18 @@
         border-color: var(--line-strong);
       }
 
-      .tool::after {
-        content: attr(aria-label);
+      [data-tip] {
+        position: relative;
+      }
+
+      [data-tip]::after {
+        content: attr(data-tip);
         position: absolute;
         left: 50%;
         top: calc(100% + 7px);
-        z-index: 20;
+        z-index: 1000;
+        width: max-content;
+        max-width: min(220px, calc(100vw - 24px));
         transform: translate(-50%, -4px);
         padding: 5px 7px;
         border-radius: 6px;
@@ -305,9 +311,38 @@
           transform 140ms ease;
       }
 
-      .tool:hover::after {
+      [data-tip]:hover::after,
+      [data-tip]:focus-visible::after {
         opacity: 1;
         transform: translate(-50%, 0);
+      }
+
+      .info-icon::after {
+        width: 190px;
+        padding: 7px 8px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        font-weight: 500;
+        line-height: 1.35;
+        white-space: normal;
+      }
+
+      @supports (position-anchor: auto) {
+        [data-tip]::after {
+          position: fixed;
+          left: auto;
+          top: auto;
+          position-anchor: auto;
+          position-area: bottom;
+          position-try-fallbacks: flip-block;
+          justify-self: anchor-center;
+          margin-top: 7px;
+          transform: translateY(-4px);
+        }
+
+        [data-tip]:hover::after,
+        [data-tip]:focus-visible::after {
+          transform: translateY(0);
+        }
       }
 
       .divider {
@@ -607,9 +642,9 @@
       }
 
       .info-icon {
-        anchor-name: --info-tip;
         display: inline-grid;
         place-items: center;
+        position: relative;
         width: 14px;
         height: 14px;
         border: 1px solid var(--line-strong);
@@ -619,41 +654,6 @@
         font-weight: 800;
         line-height: 1;
         cursor: help;
-      }
-
-      .info-icon::after {
-        content: attr(data-tip);
-        position: fixed;
-        position-anchor: auto;
-        position-area: bottom;
-        position-try-fallbacks: flip-block;
-        justify-self: anchor-center;
-        z-index: 1000;
-        width: 190px;
-        max-width: min(220px, calc(100vw - 24px));
-        margin-top: 7px;
-        transform: translateY(-4px);
-        padding: 7px 8px;
-        border: 1px solid var(--line-strong);
-        border-radius: 6px;
-        background: #232a36;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-        color: var(--text);
-        font-size: 11px;
-        font-weight: 500;
-        line-height: 1.35;
-        white-space: normal;
-        opacity: 0;
-        pointer-events: none;
-        transition:
-          opacity 120ms ease,
-          transform 120ms ease;
-      }
-
-      .info-icon:hover::after,
-      .info-icon:focus-visible::after {
-        opacity: 1;
-        transform: translateY(0);
       }
 
       .info-icon:focus-visible {
@@ -1060,9 +1060,6 @@
           height: 28px;
         }
 
-        .tool::after {
-          display: none;
-        }
       }
     </style>
   </head>
@@ -1095,13 +1092,14 @@
         <button
           class="tool active"
           data-tool="select"
+          data-tip="Select / Move"
           aria-label="Select / Move"
           type="button"
         >
           <svg viewBox="0 0 24 24"><path d="M4 3l8 18 2-8 7-3z"></path></svg>
         </button>
         <div class="divider"></div>
-        <button class="tool" data-tool="pen" aria-label="Path" type="button">
+        <button class="tool" data-tool="pen" data-tip="Path" aria-label="Path" type="button">
           <svg viewBox="0 0 24 24">
             <path d="M4 20l5-2 10-10-3-3L6 15z"></path>
             <path d="M13 6l3 3"></path>
@@ -1110,6 +1108,7 @@
         <button
           class="tool"
           data-tool="rect"
+          data-tip="Rectangle"
           aria-label="Rectangle"
           type="button"
         >
@@ -1120,6 +1119,7 @@
         <button
           class="tool"
           data-tool="ellipse"
+          data-tip="Ellipse"
           aria-label="Ellipse"
           type="button"
         >
@@ -1127,12 +1127,13 @@
             <ellipse cx="12" cy="12" rx="7" ry="5"></ellipse>
           </svg>
         </button>
-        <button class="tool" data-tool="line" aria-label="Line" type="button">
+        <button class="tool" data-tool="line" data-tip="Line" aria-label="Line" type="button">
           <svg viewBox="0 0 24 24"><path d="M5 19L19 5"></path></svg>
         </button>
         <button
           class="tool"
           data-tool="polygon"
+          data-tip="Polygon"
           aria-label="Polygon"
           type="button"
         >
@@ -1143,12 +1144,13 @@
         <button
           class="tool"
           data-tool="polyline"
+          data-tip="Polyline"
           aria-label="Polyline"
           type="button"
         >
           <svg viewBox="0 0 24 24"><path d="M4 17l5-9 5 7 6-10"></path></svg>
         </button>
-        <button class="tool" data-tool="text" aria-label="Text" type="button">
+        <button class="tool" data-tool="text" data-tip="Text" aria-label="Text" type="button">
           <svg viewBox="0 0 24 24">
             <path d="M5 6h14"></path>
             <path d="M12 6v12"></path>
@@ -1437,7 +1439,6 @@
         </section>
       </aside>
     </div>
-
     <script>
       (() => {
         const SVG_NS = "http://www.w3.org/2000/svg";
@@ -1523,6 +1524,9 @@
           polyline: "Polyline",
           text: "Text",
         };
+
+        const defaultStroke = "#000000";
+        const defaultFill = "#ffffff";
 
         const propertyMap = {
           rect: ["x", "y", "width", "height", "rx", "ry"],
@@ -2703,8 +2707,8 @@
 
         function startShape(tool, point) {
           const common = {
-            fill: tool === "line" ? "none" : "#7c5cff",
-            stroke: "#22d3ee",
+            fill: tool === "line" ? "none" : defaultFill,
+            stroke: defaultStroke,
             "stroke-width": 4,
           };
           let el;
@@ -2740,7 +2744,7 @@
             el = createSvgElement("text", {
               x: point.x,
               y: point.y,
-              fill: "#f8fafc",
+              fill: defaultStroke,
               "font-size": 44,
               "font-family": "Inter, system-ui, sans-serif",
               "font-weight": 800,
@@ -3359,7 +3363,7 @@
             const path = createSvgElement("path", {
               d: `M ${fmt(point.x)} ${fmt(point.y)}`,
               fill: "none",
-              stroke: "#7c5cff",
+              stroke: defaultStroke,
               "stroke-width": 6,
               "stroke-linecap": "round",
               "stroke-linejoin": "round",
@@ -3384,8 +3388,8 @@
         function beginPointShape(tool, point) {
           if (!state.drawing) {
             const el = createSvgElement(tool, {
-              fill: tool === "polygon" ? "#7c5cff" : "none",
-              stroke: "#22d3ee",
+              fill: tool === "polygon" ? defaultFill : "none",
+              stroke: defaultStroke,
               "stroke-width": 4,
               "stroke-linecap": "round",
               "stroke-linejoin": "round",
