@@ -1,6 +1,6 @@
 # SVG Tool
 
-A browser-based SVG editor that runs entirely client-side — no build step, no dependencies, just open `index.html`.
+A lightweight browser-based SVG editor.
 
 ## Features
 
@@ -19,20 +19,20 @@ Open `index.html` in any modern browser. No server required.
 
 ### Keyboard shortcuts
 
-| Key | Tool |
-|-----|------|
-| `V` | Select / Move |
-| `P` | Path (pen) |
-| `R` | Rectangle |
-| `O` | Ellipse |
-| `L` | Line |
-| `G` | Polygon |
-| `Y` | Polyline |
-| `T` | Text |
-| `Del` | Delete selected node or element |
-| `Esc` | Finish drawing |
-| `Ctrl/Cmd+Z` | Undo |
-| `Ctrl/Cmd+Shift+Z` | Redo |
+| Key                | Tool                            |
+| ------------------ | ------------------------------- |
+| `V`                | Select / Move                   |
+| `P`                | Path (pen)                      |
+| `R`                | Rectangle                       |
+| `O`                | Ellipse                         |
+| `L`                | Line                            |
+| `G`                | Polygon                         |
+| `Y`                | Polyline                        |
+| `T`                | Text                            |
+| `Del`              | Delete selected node or element |
+| `Esc`              | Finish drawing                  |
+| `Ctrl/Cmd+Z`       | Undo                            |
+| `Ctrl/Cmd+Shift+Z` | Redo                            |
 
 ### Path editing
 
