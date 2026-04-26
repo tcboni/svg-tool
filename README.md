@@ -2,6 +2,8 @@
 
 A lightweight browser-based SVG editor.
 
+**[→ Open SVG Tool](https://tcboni.github.io/svg-tool/)**
+
 ## Features
 
 - **Draw shapes** — rectangle, ellipse, line, polygon, polyline, text, and freehand paths
