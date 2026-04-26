@@ -107,19 +107,19 @@
       .mark {
         display: grid;
         place-items: center;
-        width: 24px;
-        height: 24px;
-        border-radius: 6px;
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
         background: linear-gradient(
           135deg,
           rgba(244, 244, 245, 0.95),
           rgba(113, 113, 122, 0.85)
         );
-        color: #0d1118;
-        font-size: 13px;
-        font-weight: 850;
-        letter-spacing: -0.06em;
-        box-shadow: none;
+        flex-shrink: 0;
+      }
+      .mark svg {
+        width: 20px;
+        height: 20px;
       }
 
       h1,
@@ -482,7 +482,7 @@
 
       .selection-box {
         fill: none;
-        stroke: rgba(255, 255, 255, 0.82);
+        stroke: rgba(0, 0, 0, 0.75);
         stroke-width: 1.4;
         stroke-dasharray: 5 4;
         vector-effect: non-scaling-stroke;
@@ -490,7 +490,7 @@
       }
 
       .handle-line {
-        stroke: rgba(255, 255, 255, 0.5);
+        stroke: rgba(0, 0, 0, 0.45);
         stroke-width: 1.1;
         vector-effect: non-scaling-stroke;
         pointer-events: none;
@@ -498,46 +498,31 @@
 
       .node-handle,
       .ctrl-handle {
-        stroke: #0d1118;
-        stroke-width: 1.4;
         vector-effect: non-scaling-stroke;
         cursor: grab;
       }
 
       .node-handle {
-        fill: #f4f4f5;
+        fill: #6b7280;
+        stroke: #fff;
+        stroke-width: 1.4;
       }
 
       .ctrl-handle {
-        fill: #a1a1aa;
+        fill: #0d1118;
+        stroke: none;
       }
 
       .node-handle.active {
-        fill: #ffffff;
-        stroke: #000000;
+        fill: #2563eb;
+        stroke: #fff;
+        stroke-width: 2;
       }
 
       .path-floating-actions,
       .path-add-action,
       .path-delete-action {
         pointer-events: auto;
-      }
-
-      .path-action-panel {
-        fill: rgba(16, 19, 26, 0.92);
-        stroke: rgba(255, 255, 255, 0.34);
-        stroke-width: 1;
-        vector-effect: non-scaling-stroke;
-      }
-
-      .path-action-label {
-        fill: rgba(255, 255, 255, 0.68);
-        font-size: 9px;
-        font-weight: 800;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        pointer-events: none;
-        user-select: none;
       }
 
       .path-action-button {
@@ -556,9 +541,53 @@
         user-select: none;
       }
 
+      .path-action-icon {
+        fill: none;
+        stroke: #0d1118;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        pointer-events: none;
+      }
+
       .path-add-action:hover .path-action-button,
       .path-delete-action:hover .path-action-button {
         fill: #ffffff;
+      }
+
+      .appearance-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+        color: var(--text);
+        cursor: pointer;
+        margin-bottom: 8px;
+      }
+
+      .appearance-row input[type="checkbox"] {
+        accent-color: #2563eb;
+        width: 14px;
+        height: 14px;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      .attr-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--text);
+      }
+
+      .color-swatch {
+        width: 36px;
+        height: 24px;
+        padding: 1px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: none;
+        cursor: pointer;
       }
 
       .side {
@@ -922,10 +951,43 @@
 
       .segment-pick {
         overflow: hidden;
-        padding: 7px 8px;
-        text-align: left;
-        text-overflow: ellipsis;
+        padding: 4px 8px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .segment-num {
+        flex-shrink: 0;
+        opacity: 0.5;
+        user-select: none;
+      }
+
+      .segment-input {
+        all: unset;
+        flex: 1;
+        min-width: 0;
+        padding: 3px 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 11px;
+        color: inherit;
+        cursor: text;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .segment-input:focus {
+        text-overflow: clip;
+        outline: none;
+      }
+
+      .segment-input-sep {
+        color: var(--muted);
+        opacity: 0.4;
+        flex-shrink: 0;
+        user-select: none;
       }
 
       .segment-delete {
@@ -1068,10 +1130,14 @@
     <div class="app">
       <header class="topbar">
         <div class="brand">
-          <div class="mark">S</div>
+          <div class="mark">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 17 L8 7 L12 14 L15 10 L20 17 Z" fill="#0d1118" stroke="none"/>
+              <circle cx="19" cy="8" r="2.5" fill="#0d1118"/>
+            </svg>
+          </div>
           <div>
             <h1>SVG Tool</h1>
-            <p class="subtitle">Untitled.svg</p>
           </div>
         </div>
         <div class="actions">
@@ -1085,7 +1151,6 @@
           <button class="btn primary" id="downloadBtn" type="button">
             Export SVG
           </button>
-          <button class="btn danger" id="clearBtn" type="button">Clear</button>
         </div>
       </header>
 
@@ -1337,6 +1402,22 @@
               </button>
             </div>
           </div>
+          <div class="section" id="pointsSummarySection" hidden>
+            <h2>Points Inspector</h2>
+            <div id="pointsSummary" class="empty"></div>
+          </div>
+          <div class="section" id="pointsDataSection" hidden>
+            <h2>Points Data</h2>
+            <textarea
+              id="pointsData"
+              spellcheck="false"
+              placeholder="points attribute"
+            ></textarea>
+          </div>
+          <div class="section" id="pointsListSection" hidden>
+            <h2>Points</h2>
+            <div id="pointsList" class="segments"></div>
+          </div>
           <div class="section" id="propertiesSection" hidden>
             <h2>Properties</h2>
             <div id="propertyEditor"></div>
@@ -1414,6 +1495,17 @@
             </div>
           </div>
           <div class="section">
+            <h2>Appearance</h2>
+            <label class="appearance-row">
+              <input type="checkbox" id="showGridToggle" checked />
+              <span>Show grid</span>
+            </label>
+            <div class="attr-row">
+              <span class="attr-label">Background</span>
+              <input type="color" id="artboardColorPicker" value="#f8fafc" class="color-swatch" />
+            </div>
+          </div>
+          <div class="section">
             <h2>Shortcuts</h2>
             <p class="empty">
               <span class="kbd">V</span> select,
@@ -1447,6 +1539,7 @@
               <button class="btn" id="sampleBtn" type="button">
                 Load Sample
               </button>
+              <button class="btn danger" id="clearBtn" type="button">Clear</button>
             </div>
           </div>
           <div class="section">
@@ -1505,6 +1598,8 @@
           clipboardImportBtn: document.getElementById("clipboardImportBtn"),
           downloadBtn: document.getElementById("downloadBtn"),
           clearBtn: document.getElementById("clearBtn"),
+          showGridToggle: document.getElementById("showGridToggle"),
+          artboardColorPicker: document.getElementById("artboardColorPicker"),
           tabs: document.querySelectorAll(".tab"),
           panels: {
             inspect: document.getElementById("inspectPanel"),
@@ -1534,6 +1629,12 @@
           pathData: document.getElementById("pathData"),
           closePathBtn: document.getElementById("closePathBtn"),
           segments: document.getElementById("segments"),
+          pointsSummarySection: document.getElementById("pointsSummarySection"),
+          pointsDataSection: document.getElementById("pointsDataSection"),
+          pointsListSection: document.getElementById("pointsListSection"),
+          pointsSummary: document.getElementById("pointsSummary"),
+          pointsData: document.getElementById("pointsData"),
+          pointsList: document.getElementById("pointsList"),
           markup: document.getElementById("markup"),
           copyMarkupBtn: document.getElementById("copyMarkupBtn"),
           exportSvgBtn: document.getElementById("exportSvgBtn"),
@@ -1560,8 +1661,6 @@
           circle: ["cx", "cy", "r"],
           ellipse: ["cx", "cy", "rx", "ry"],
           line: ["x1", "y1", "x2", "y2"],
-          polyline: ["points"],
-          polygon: ["points"],
           text: ["x", "y"],
           image: ["href", "x", "y", "width", "height"],
           use: ["href", "x", "y", "width", "height"],
@@ -1956,6 +2055,7 @@
           );
 
           renderPathPanel();
+          renderPointsPanel();
         }
 
         function renderAttributeSection(section, editor, attrs, el) {
@@ -2260,6 +2360,11 @@
           refreshMarkup();
         }
 
+        const VALID_PATH_CMDS = new Set([
+          "M","L","C","Q","A","Z","H","V","S","T",
+          "m","l","c","q","a","z","h","v","s","t",
+        ]);
+
         function renderPathPanel() {
           const el = state.selected;
           const isPath = el?.tagName.toLowerCase() === "path";
@@ -2274,11 +2379,11 @@
             els.pathData.value = isPath ? el.getAttribute("d") || "" : "";
           }
           els.pathData.disabled = !isPath;
-          els.segments.innerHTML = "";
 
           if (!isPath) {
             els.closePathBtn.disabled = true;
             els.closePathBtn.hidden = true;
+            els.segments.innerHTML = "";
             return;
           }
 
@@ -2295,25 +2400,61 @@
           ).length;
           els.pathSummary.innerHTML = `<strong>${state.parsedPath.length}</strong> commands · <strong>${pointCount}</strong> editable nodes · <strong>${length}</strong>px drawn length`;
 
+          if (
+            document.activeElement?.tagName === "INPUT" &&
+            els.segments.contains(document.activeElement)
+          ) {
+            els.segments.querySelectorAll(".segment").forEach((item, i) => {
+              item.classList.toggle("active", state.selectedNode?.segmentIndex === i);
+            });
+            return;
+          }
+
+          els.segments.innerHTML = "";
           state.parsedPath.forEach((segment, index) => {
             const item = document.createElement("div");
             item.className = "segment";
-            item.classList.toggle(
-              "active",
-              state.selectedNode?.segmentIndex === index,
-            );
-            const pick = document.createElement("button");
-            pick.type = "button";
+            item.classList.toggle("active", state.selectedNode?.segmentIndex === index);
+
+            const pick = document.createElement("div");
             pick.className = "segment-pick";
-            pick.textContent = `${index + 1}. ${segment.cmd} ${segment.values.map(fmt).join(" ")}`;
-            pick.addEventListener("click", () => {
+
+            const numSpan = document.createElement("span");
+            numSpan.className = "segment-num";
+            numSpan.textContent = `${index + 1}.`;
+
+            const segInput = document.createElement("input");
+            segInput.type = "text";
+            segInput.className = "segment-input";
+            segInput.value = `${segment.cmd} ${segment.values.map(fmt).join(" ")}`;
+            segInput.setAttribute("aria-label", `Segment ${index + 1}`);
+            segInput.addEventListener("pointerdown", () => {
               const handle = pathHandles(state.parsedPath).find(
                 (entry) => entry.segmentIndex === index && entry.role === "end",
               );
               if (handle) state.selectedNode = handle;
               renderOverlay();
-              renderPathPanel();
+              els.segments.querySelectorAll(".segment").forEach((item, i) => {
+                item.classList.toggle("active", i === index);
+              });
             });
+            segInput.addEventListener("change", () => {
+              const parts = segInput.value.trim().split(/[\s,]+/);
+              const cmd = parts[0];
+              if (!cmd || !VALID_PATH_CMDS.has(cmd)) {
+                segInput.value = `${segment.cmd} ${segment.values.map(fmt).join(" ")}`;
+                return;
+              }
+              const values = parts.slice(1).map(Number);
+              if (values.some(Number.isNaN)) {
+                segInput.value = `${segment.cmd} ${segment.values.map(fmt).join(" ")}`;
+                return;
+              }
+              state.parsedPath[index] = { cmd, values };
+              state.selected.setAttribute("d", serializePath(state.parsedPath));
+              afterGeometryChange();
+            });
+
             const remove = document.createElement("button");
             remove.type = "button";
             remove.className = "segment-delete";
@@ -2328,6 +2469,8 @@
               event.stopPropagation();
               deletePathSegment(index);
             });
+
+            pick.append(numSpan, segInput);
             item.append(pick, remove);
             els.segments.append(item);
           });
@@ -2345,6 +2488,135 @@
           renderSelectionSummary();
           renderOverlay();
           renderPathPanel();
+          refreshMarkup();
+        }
+
+        function parsePolyPoints(str) {
+          const pairs = [];
+          str
+            .trim()
+            .split(/\s+/)
+            .forEach((pair) => {
+              if (!pair) return;
+              const parts = pair.split(",");
+              const x = Number(parts[0]);
+              const y = Number(parts[1]);
+              if (Number.isFinite(x) && Number.isFinite(y)) pairs.push([x, y]);
+            });
+          return pairs;
+        }
+
+        function serializePolyPoints(pairs) {
+          return pairs.map(([x, y]) => `${fmt(x)},${fmt(y)}`).join(" ");
+        }
+
+        function renderPointsPanel() {
+          const el = state.selected;
+          const tag = el?.tagName.toLowerCase();
+          const isPoly = tag === "polygon" || tag === "polyline";
+          [
+            els.pointsSummarySection,
+            els.pointsDataSection,
+            els.pointsListSection,
+          ].forEach((s) => {
+            s.hidden = !isPoly;
+          });
+          if (!isPoly) return;
+
+          const pointsStr = el.getAttribute("points") || "";
+          if (document.activeElement !== els.pointsData) {
+            els.pointsData.value = pointsStr;
+          }
+
+          const pairs = parsePolyPoints(pointsStr);
+          els.pointsSummary.innerHTML = `<strong>${pairs.length}</strong> points`;
+
+          const listInputFocused =
+            document.activeElement?.tagName === "INPUT" &&
+            els.pointsList.contains(document.activeElement);
+          if (listInputFocused) return;
+
+          els.pointsList.innerHTML = "";
+          pairs.forEach(([x, y], index) => {
+            const item = document.createElement("div");
+            item.className = "segment";
+
+            const pick = document.createElement("div");
+            pick.className = "segment-pick";
+
+            const numSpan = document.createElement("span");
+            numSpan.className = "segment-num";
+            numSpan.textContent = `${index + 1}.`;
+
+            const makeInput = (val, axis) => {
+              const inp = document.createElement("input");
+              inp.type = "number";
+              inp.step = "1";
+              inp.className = "segment-input";
+              inp.style.flex = "1";
+              inp.value = val;
+              inp.setAttribute("aria-label", `Point ${index + 1} ${axis}`);
+              inp.addEventListener("input", () => {
+                const newVal = Number(inp.value);
+                if (!Number.isFinite(newVal)) return;
+                const currentPairs = parsePolyPoints(el.getAttribute("points") || "");
+                const newPairs = currentPairs.map((p, i) =>
+                  i === index
+                    ? axis === "x"
+                      ? [newVal, p[1]]
+                      : [p[0], newVal]
+                    : p,
+                );
+                const newStr = serializePolyPoints(newPairs);
+                el.setAttribute("points", newStr);
+                if (document.activeElement !== els.pointsData) {
+                  els.pointsData.value = newStr;
+                }
+                renderOverlay();
+                refreshMarkup();
+              });
+              inp.addEventListener("change", () => scheduleHistoryCommit());
+              return inp;
+            };
+
+            const makeLabel = (text) => {
+              const lbl = document.createElement("span");
+              lbl.className = "segment-input-sep";
+              lbl.textContent = text;
+              return lbl;
+            };
+
+            const del = document.createElement("button");
+            del.type = "button";
+            del.className = "segment-delete";
+            del.disabled = pairs.length <= 2;
+            del.title =
+              pairs.length <= 2
+                ? "Cannot delete — minimum 2 points"
+                : "Delete point";
+            del.innerHTML = `<svg viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 14h10l1-14"></path><path d="M9 7V4h6v3"></path></svg>`;
+            del.addEventListener("click", () => {
+              const newPairs = pairs.filter((_, i) => i !== index);
+              el.setAttribute("points", serializePolyPoints(newPairs));
+              afterGeometryChange();
+              renderPointsPanel();
+              toast("Point deleted", "good");
+            });
+
+            pick.append(numSpan, makeLabel("x"), makeInput(x, "x"), makeLabel("y"), makeInput(y, "y"));
+            item.append(pick, del);
+            els.pointsList.append(item);
+          });
+        }
+
+        function syncPointsDataFromInput() {
+          const el = state.selected;
+          const tag = el?.tagName.toLowerCase();
+          if (tag !== "polygon" && tag !== "polyline") return;
+          el.setAttribute("points", els.pointsData.value.trim());
+          renderSelectionSummary();
+          renderOverlay();
+          renderPointsPanel();
           refreshMarkup();
         }
 
@@ -2418,7 +2690,7 @@
               class: `${handle.role === "ctrl" ? "ctrl-handle" : "node-handle"} ${sameHandle(handle, state.selectedNode) ? "active" : ""}`,
               cx: handle.x,
               cy: handle.y,
-              r: handle.role === "ctrl" ? 5 : 6,
+              r: handle.role === "ctrl" ? 3.5 : 6,
               "data-segment": handle.segmentIndex,
               "data-role": handle.role,
               "data-offset": handle.offset,
@@ -2436,12 +2708,12 @@
           const end = lastPathPoint(state.parsedPath);
           if (start) {
             els.overlayLayer.append(
-              createPathActionGroup(start, "start", "Start", -56, -44),
+              createPathActionGroup(start, "start", -52, 12),
             );
           }
           if (end) {
             els.overlayLayer.append(
-              createPathActionGroup(end, "end", "End", 12, 12),
+              createPathActionGroup(end, "end", -52, 12),
             );
           }
 
@@ -2454,48 +2726,25 @@
           }
         }
 
-        function createPathActionGroup(point, endName, label, dx, dy) {
+        function createPathActionGroup(point, endName, dx, dy) {
           const group = createSvgElement("g", {
             class: "path-floating-actions",
             transform: `translate(${fmt(point.x + dx)} ${fmt(point.y + dy)})`,
           });
-          group.append(
-            createSvgElement("rect", {
-              class: "path-action-panel",
-              x: 0,
-              y: 0,
-              width: 112,
-              height: 38,
-              rx: 7,
-            }),
-          );
-          const title = createSvgElement("text", {
-            class: "path-action-label",
-            x: 8,
-            y: 12,
-          });
-          title.textContent = label.toUpperCase();
-          group.append(title);
           [
-            ["line", "L"],
-            ["cubic", "C"],
-            ["quadratic", "Q"],
-            ["arc", "A"],
-          ].forEach(([type, shortLabel], index) => {
+            "line",
+            "cubic",
+            "quadratic",
+            "arc",
+          ].forEach((type, index) => {
             group.append(
-              createPathActionButton(
-                endName,
-                type,
-                shortLabel,
-                8 + index * 25,
-                17,
-              ),
+              createPathActionButton(endName, type, index * 27, 0),
             );
           });
           return group;
         }
 
-        function createPathActionButton(endName, type, label, x, y) {
+        function createPathActionButton(endName, type, x, y) {
           const button = createSvgElement("g", {
             class: "path-add-action",
             transform: `translate(${x} ${y})`,
@@ -2507,19 +2756,48 @@
               class: "path-action-button",
               x: 0,
               y: 0,
-              width: 20,
+              width: 22,
               height: 16,
               rx: 4,
             }),
           );
-          const text = createSvgElement("text", {
-            class: "path-action-button-label",
-            x: 10,
-            y: 11,
-          });
-          text.textContent = `+${label}`;
-          button.append(text);
+          button.append(
+            createSvgElement("line", {
+              class: "path-action-icon",
+              x1: 2, y1: 8, x2: 6, y2: 8,
+            }),
+            createSvgElement("line", {
+              class: "path-action-icon",
+              x1: 4, y1: 6, x2: 4, y2: 10,
+            }),
+            createPathTypeIcon(type),
+          );
           return button;
+        }
+
+        function createPathTypeIcon(type) {
+          if (type === "line") {
+            return createSvgElement("line", {
+              class: "path-action-icon",
+              x1: 9, y1: 13, x2: 19, y2: 3,
+            });
+          }
+          if (type === "cubic") {
+            return createSvgElement("path", {
+              class: "path-action-icon",
+              d: "M9,13 C11,2 17,2 19,13",
+            });
+          }
+          if (type === "quadratic") {
+            return createSvgElement("path", {
+              class: "path-action-icon",
+              d: "M9,13 Q14,0 19,13",
+            });
+          }
+          return createSvgElement("path", {
+            class: "path-action-icon",
+            d: "M9,13 A5,9 0 0 1 19,13",
+          });
         }
 
         function createDeleteNodeAction(point) {
@@ -2533,18 +2811,15 @@
               class: "path-action-button",
               x: 0,
               y: 0,
-              width: 38,
+              width: 18,
               height: 18,
               rx: 5,
             }),
           );
-          const text = createSvgElement("text", {
-            class: "path-action-button-label",
-            x: 19,
-            y: 12,
-          });
-          text.textContent = "DEL";
-          group.append(text);
+          group.append(
+            createSvgElement("line", { class: "path-action-icon", x1: 5, y1: 5, x2: 13, y2: 13 }),
+            createSvgElement("line", { class: "path-action-icon", x1: 13, y1: 5, x2: 5, y2: 13 }),
+          );
           return group;
         }
 
@@ -3048,10 +3323,22 @@
           const drag = state.drag;
           if (!drag || drag.type !== "move-node") return;
           const segment = state.parsedPath[drag.handle.segmentIndex];
-          segment.values[drag.handle.xOffset] = point.x;
-          segment.values[drag.handle.yOffset] = point.y;
+          if (drag.handle.kind === "arc-radius") {
+            const endX = segment.values[5];
+            const endY = segment.values[6];
+            segment.values[0] = Math.max(1, Math.abs(point.x - endX));
+            segment.values[1] = Math.max(1, Math.abs(point.y - endY));
+            state.selectedNode = {
+              ...drag.handle,
+              x: endX + segment.values[0],
+              y: endY + segment.values[1],
+            };
+          } else {
+            segment.values[drag.handle.xOffset] = point.x;
+            segment.values[drag.handle.yOffset] = point.y;
+            state.selectedNode = { ...drag.handle, x: point.x, y: point.y };
+          }
           state.selected.setAttribute("d", serializePath(state.parsedPath));
-          state.selectedNode = { ...drag.handle, x: point.x, y: point.y };
           renderOverlay();
           renderPathPanel();
           refreshMarkup();
@@ -3259,6 +3546,16 @@
                 y: segment.values[3],
               });
             } else if (segment.cmd === "A") {
+              handles.push({
+                segmentIndex,
+                role: "ctrl",
+                kind: "arc-radius",
+                offset: 0,
+                xOffset: 0,
+                yOffset: 1,
+                x: segment.values[5] + segment.values[0],
+                y: segment.values[6] + segment.values[1],
+              });
               handles.push({
                 segmentIndex,
                 role: "end",
@@ -3704,6 +4001,12 @@
             downloadRaster("jpeg"),
           );
           els.clearBtn.addEventListener("click", clearCanvas);
+          els.showGridToggle.addEventListener("change", () => {
+            els.artboardGrid.style.display = els.showGridToggle.checked ? "" : "none";
+          });
+          els.artboardColorPicker.addEventListener("input", () => {
+            els.artboard.style.fill = els.artboardColorPicker.value;
+          });
           els.zoomInBtn.addEventListener("click", () => zoomCanvas(1.2));
           els.zoomOutBtn.addEventListener("click", () => zoomCanvas(1 / 1.2));
           els.zoomResetBtn.addEventListener("click", () => {
@@ -3734,6 +4037,7 @@
           els.viewWidth.addEventListener("input", syncCanvasSize);
           els.viewHeight.addEventListener("input", syncCanvasSize);
           els.pathData.addEventListener("input", syncPathDataFromInput);
+          els.pointsData.addEventListener("input", syncPointsDataFromInput);
 
           els.closePathBtn.addEventListener("click", () => {
             if (!ensureSelectedPath()) return;
