@@ -1910,6 +1910,9 @@
       (() => {
         const SVG_NS = "http://www.w3.org/2000/svg";
         const GRID_SIZE = 20;
+        const ELEMENT_DRAG_SAFE_ZONE_PX = 10;
+        const NUDGE_STEP_PX = 1;
+        const NUDGE_FAST_STEP_PX = 10;
 
         const state = {
           tool: "select",
@@ -3350,6 +3353,13 @@
           refreshMarkup();
         }
 
+        function clearUiFocusFromCanvasInteraction() {
+          const active = document.activeElement;
+          if (!active || active === document.body) return;
+          if (els.stageWrap.contains(active)) return;
+          if (typeof active.blur === "function") active.blur();
+        }
+
         function safeBBox(el) {
           try {
             return el.getBBox();
@@ -3848,10 +3858,12 @@
           state.drag = {
             type: "move-element",
             el,
+            start: point,
             last: point,
+            startClientX: event.clientX,
+            startClientY: event.clientY,
+            hasMoved: false,
           };
-          els.canvas.classList.add("grabbing");
-          document.body.classList.add("dragging-canvas");
         }
 
         function startPan(event) {
@@ -3867,10 +3879,26 @@
           document.body.classList.add("dragging-canvas");
         }
 
-        function moveSelectedElement(point) {
+        function moveSelectedElement(point, event) {
           const pt = snapPoint(point);
           const drag = state.drag;
           if (!drag || drag.type !== "move-element") return;
+          if (!drag.hasMoved) {
+            const distance = Math.hypot(
+              event.clientX - drag.startClientX,
+              event.clientY - drag.startClientY,
+            );
+            if (distance <= ELEMENT_DRAG_SAFE_ZONE_PX) return;
+            const totalDx = pt.x - drag.start.x;
+            const totalDy = pt.y - drag.start.y;
+            translateElement(drag.el, totalDx, totalDy);
+            drag.last = pt;
+            drag.hasMoved = true;
+            els.canvas.classList.add("grabbing");
+            document.body.classList.add("dragging-canvas");
+            afterGeometryChange();
+            return;
+          }
           const dx = pt.x - drag.last.x;
           const dy = pt.y - drag.last.y;
           translateElement(drag.el, dx, dy);
@@ -4861,6 +4889,7 @@
         }
 
         function handleCanvasPointerDown(event) {
+          clearUiFocusFromCanvasInteraction();
           if (event.button === 2) {
             event.preventDefault();
             if (state.tool !== "select") finishDrawing();
@@ -4943,7 +4972,8 @@
 
         function handleCanvasPointerMove(event) {
           const point = pointFromEvent(event);
-          if (state.drag?.type === "move-element") moveSelectedElement(point);
+          if (state.drag?.type === "move-element")
+            moveSelectedElement(point, event);
           if (state.drag?.type === "move-node") moveNode(point);
           if (state.drag?.type === "draw-shape") updateShapeDrag(point);
           if (state.drag?.type === "pan") moveViewport(event);
@@ -5201,6 +5231,11 @@
           document.addEventListener("keydown", (event) => {
             const key = event.key.toLowerCase();
             const mod = event.metaKey || event.ctrlKey;
+            const target = event.target;
+            const isEditableTarget =
+              target instanceof Element &&
+              (target.matches("input, textarea, select") ||
+                target.isContentEditable);
             if (mod && key === "z") {
               event.preventDefault();
               if (event.shiftKey) redo();
@@ -5212,7 +5247,24 @@
               redo();
               return;
             }
-            if (event.target.matches("input, textarea")) return;
+            if (isEditableTarget) return;
+            const nudgeDelta = {
+              ArrowLeft: { x: -1, y: 0 },
+              ArrowRight: { x: 1, y: 0 },
+              ArrowUp: { x: 0, y: -1 },
+              ArrowDown: { x: 0, y: 1 },
+            }[event.key];
+            if (nudgeDelta && state.selected && !state.drag) {
+              event.preventDefault();
+              const step = event.shiftKey ? NUDGE_FAST_STEP_PX : NUDGE_STEP_PX;
+              translateElement(
+                state.selected,
+                nudgeDelta.x * step,
+                nudgeDelta.y * step,
+              );
+              afterGeometryChange();
+              return;
+            }
             if (
               (event.key === "Enter" || event.key === "F2") &&
               state.selected?.tagName.toLowerCase() === "text" &&
