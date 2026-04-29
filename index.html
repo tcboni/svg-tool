@@ -4280,6 +4280,7 @@
             const upper = cmd.toUpperCase();
             const relative = cmd !== upper;
             const length = lengths[upper];
+            if (length == null) break;
             let firstMoveForCommand = upper === "M";
             if (upper === "Z") {
               segments.push({ cmd: "Z", values: [] });
@@ -4287,11 +4288,15 @@
               y = startY;
               prevC = null;
               prevQ = null;
+              cmd = "";
               continue;
             }
 
             while (i < tokens.length && !isCommand(tokens[i])) {
-              if (i + length > tokens.length) break;
+              if (i + length > tokens.length) {
+                i = tokens.length;
+                break;
+              }
               if (upper === "M") {
                 let nx = read();
                 let ny = read();
