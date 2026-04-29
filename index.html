@@ -449,6 +449,23 @@
         cursor: grabbing;
       }
 
+      .canvas.no-grid {
+        background-image: none;
+      }
+
+      .canvas.crop-mode {
+        cursor: crosshair;
+      }
+
+      .crop-rect {
+        fill: rgba(99, 179, 237, 0.07);
+        stroke: #63b3ed;
+        stroke-width: 1.4;
+        stroke-dasharray: 5 4;
+        vector-effect: non-scaling-stroke;
+        pointer-events: none;
+      }
+
       .drop-hint {
         position: absolute;
         inset: 14px;
@@ -1132,14 +1149,15 @@
       <header class="topbar">
         <div class="brand">
           <div class="mark">
-            <svg
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="#f4f4f5" stop-opacity="0.95"/>
-                  <stop offset="100%" stop-color="#71717a" stop-opacity="0.85"/>
+                  <stop offset="0%" stop-color="#f4f4f5" stop-opacity="0.95" />
+                  <stop
+                    offset="100%"
+                    stop-color="#71717a"
+                    stop-opacity="0.85"
+                  />
                 </linearGradient>
               </defs>
               <path
@@ -1152,6 +1170,7 @@
           </div>
           <div>
             <h1>SVG Tool</h1>
+            <p class="subtitle" id="fileNameDisplay">Untitled.svg</p>
           </div>
         </div>
         <div class="actions">
@@ -1178,6 +1197,30 @@
         >
           <svg viewBox="0 0 24 24"><path d="M4 3l8 18 2-8 7-3z"></path></svg>
         </button>
+        <button
+          class="tool"
+          data-tool="trim"
+          data-tip="Trim canvas"
+          aria-label="Trim canvas"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M5 9V5h4M19 9V5h-4M5 15v4h4M19 15v4h-4"></path>
+          </svg>
+        </button>
+        <button
+          class="tool"
+          data-tool="crop"
+          data-tip="Crop canvas"
+          aria-label="Crop canvas"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24">
+            <circle cx="6" cy="6" r="2.5"></circle>
+            <circle cx="6" cy="18" r="2.5"></circle>
+            <path d="M8 8L21 21M8 16L21 3"></path>
+          </svg>
+        </button>
         <div class="divider"></div>
         <button
           class="tool"
@@ -1200,6 +1243,17 @@
         >
           <svg viewBox="0 0 24 24">
             <rect x="5" y="6" width="14" height="12" rx="2"></rect>
+          </svg>
+        </button>
+        <button
+          class="tool"
+          data-tool="circle"
+          data-tip="Circle (C)"
+          aria-label="Circle"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="7"></circle>
           </svg>
         </button>
         <button
@@ -1253,6 +1307,19 @@
             <path d="M5 6h14"></path>
             <path d="M12 6v12"></path>
             <path d="M9 18h6"></path>
+          </svg>
+        </button>
+        <button
+          class="tool"
+          data-tool="image"
+          data-tip="Image (I)"
+          aria-label="Image"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="6" width="18" height="13" rx="2"></rect>
+            <circle cx="8.5" cy="11" r="1.5"></circle>
+            <path d="M3 16l5-5 5 6 3-3 5 5"></path>
           </svg>
         </button>
         <div class="toolbar-spacer"></div>
@@ -1436,6 +1503,10 @@
             <h2>Properties</h2>
             <div id="propertyEditor"></div>
           </div>
+          <div class="section" id="fontSection" hidden>
+            <h2>Font</h2>
+            <div class="attr-grid" id="fontEditor"></div>
+          </div>
           <div class="section" id="strokeSection" hidden>
             <h2>Stroke</h2>
             <div class="attr-grid" id="strokeEditor"></div>
@@ -1443,10 +1514,6 @@
           <div class="section" id="fillSection" hidden>
             <h2>Fill</h2>
             <div class="attr-grid" id="fillEditor"></div>
-          </div>
-          <div class="section" id="fontSection" hidden>
-            <h2>Font</h2>
-            <div class="attr-grid" id="fontEditor"></div>
           </div>
           <div class="section" id="attributesSection" hidden>
             <h2>Attributes</h2>
@@ -1514,6 +1581,10 @@
               <input type="checkbox" id="showGridToggle" checked />
               <span>Show grid</span>
             </label>
+            <label class="appearance-row">
+              <input type="checkbox" id="snapToGridToggle" />
+              <span>Snap to grid</span>
+            </label>
             <div class="attr-row">
               <span class="attr-label">Background</span>
               <input
@@ -1530,12 +1601,13 @@
               <span class="kbd">V</span> select,
               <span class="kbd">P</span> path,
               <span class="kbd">R</span> rectangle,
+              <span class="kbd">C</span> circle,
               <span class="kbd">O</span> ellipse,
               <span class="kbd">L</span> line,
               <span class="kbd">G</span> polygon,
               <span class="kbd">Y</span> polyline,
-              <span class="kbd">T</span> text,
-              <span class="kbd">Del</span> delete selected node or element,
+              <span class="kbd">T</span> text, <span class="kbd">I</span> image,
+              <span class="kbd">Del</span> delete selected element,
               <span class="kbd">Esc</span> finish drawing.
             </p>
           </div>
@@ -1565,6 +1637,19 @@
           </div>
           <div class="section">
             <h2>Export</h2>
+            <div class="field" style="margin-bottom: 10px">
+              <label
+                for="fileNameInput"
+                style="display: block; margin-bottom: 5px"
+                >File name</label
+              >
+              <input
+                type="text"
+                id="fileNameInput"
+                value="Untitled.svg"
+                placeholder="filename.svg"
+              />
+            </div>
             <div class="mini-row">
               <button class="btn" id="exportSvgBtn" type="button">
                 Export SVG
@@ -1583,6 +1668,8 @@
     <script>
       (() => {
         const SVG_NS = "http://www.w3.org/2000/svg";
+        const GRID_SIZE = 20;
+
         const state = {
           tool: "select",
           viewBox: [0, 0, 800, 600],
@@ -1599,6 +1686,7 @@
           historyTimer: null,
           historyReady: false,
           isRestoring: false,
+          snapToGrid: false,
         };
 
         const els = {
@@ -1620,6 +1708,7 @@
           downloadBtn: document.getElementById("downloadBtn"),
           clearBtn: document.getElementById("clearBtn"),
           showGridToggle: document.getElementById("showGridToggle"),
+          snapToGridToggle: document.getElementById("snapToGridToggle"),
           artboardColorPicker: document.getElementById("artboardColorPicker"),
           tabs: document.querySelectorAll(".tab"),
           panels: {
@@ -1661,17 +1750,22 @@
           exportSvgBtn: document.getElementById("exportSvgBtn"),
           exportPngBtn: document.getElementById("exportPngBtn"),
           exportJpgBtn: document.getElementById("exportJpgBtn"),
+          fileNameInput: document.getElementById("fileNameInput"),
+          fileNameDisplay: document.getElementById("fileNameDisplay"),
         };
 
         const toolLabels = {
           select: "Select / Move",
           pen: "Path",
           rect: "Rectangle",
+          circle: "Circle",
           ellipse: "Ellipse",
           line: "Line",
           polygon: "Polygon",
           polyline: "Polyline",
           text: "Text",
+          image: "Image",
+          crop: "Crop",
         };
 
         const defaultStroke = "#000000";
@@ -1683,7 +1777,7 @@
           ellipse: ["cx", "cy", "rx", "ry"],
           line: ["x1", "y1", "x2", "y2"],
           text: ["x", "y"],
-          image: ["href", "x", "y", "width", "height"],
+          image: ["href", "x", "y", "width", "height", "preserveAspectRatio"],
           use: ["href", "x", "y", "width", "height"],
         };
 
@@ -1768,7 +1862,9 @@
           "text-anchor": "How text is aligned relative to its x coordinate.",
           "dominant-baseline": "Vertical alignment baseline for text.",
           "letter-spacing": "Additional spacing between text characters.",
-          href: "Referenced resource or element.",
+          href: "URL of the image or referenced element.",
+          preserveAspectRatio:
+            "How the image is scaled and aligned within its viewport.",
         };
 
         const attributeOptions = {
@@ -1839,7 +1935,9 @@
   <polygon id="marker" points="610,355 690,400 620,455" fill="#ef4444" opacity="0.9"/>
   <polygon id="sample-polygon" points="430,470 465,435 510,452 505,505 455,512" fill="#fde047" stroke="#7c3aed" stroke-width="6" stroke-linejoin="round"/>
   <polyline id="sample-polyline" points="560,520 600,485 642,515 690,475 725,510" fill="none" stroke="#06b6d4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-  <text id="label" x="95" y="520" font-size="36" font-family="Inter, system-ui, sans-serif" font-weight="800" fill="#111827">Edit paths, shapes, and markup</text>
+  <circle id="sample-circle" cx="390" cy="450" r="38" fill="#f472b6" stroke="#db2777" stroke-width="5"/>
+  <image href="https://75d843f348009c4ac2194fcf3c5d1c1934788659.mdnplay.dev/en-US/docs/Web/SVG/Reference/Element/image/mdn_logo_only_color.png" height="200" width="200" />
+  <text id="label" x="95" y="520" font-size="36" font-family="Inter, system-ui, sans-serif" font-weight="800" fill="#111827">Hello world!</text>
 </svg>`;
 
         function createSvgElement(tag, attrs = {}) {
@@ -1870,15 +1968,28 @@
           return matrix ? pt.matrixTransform(matrix.inverse()) : { x: 0, y: 0 };
         }
 
+        function snapPoint(pt) {
+          if (!state.snapToGrid) return pt;
+          return {
+            x: Math.round(pt.x / GRID_SIZE) * GRID_SIZE,
+            y: Math.round(pt.y / GRID_SIZE) * GRID_SIZE,
+          };
+        }
+
         function setTool(tool) {
+          if (tool === "trim") {
+            trimCanvas();
+            return;
+          }
           if (state.drawing && state.drawing.tool !== tool)
             finishDrawing(false);
           state.tool = tool;
           document.querySelectorAll(".tool").forEach((button) => {
             button.classList.toggle("active", button.dataset.tool === tool);
           });
-          els.toolName.textContent = toolLabels[tool];
+          els.toolName.textContent = toolLabels[tool] || tool;
           els.canvas.classList.toggle("select-mode", tool === "select");
+          els.canvas.classList.toggle("crop-mode", tool === "crop");
           renderOverlay();
         }
 
@@ -2051,6 +2162,12 @@
           }
 
           renderAttributeSection(
+            els.fontSection,
+            els.fontEditor,
+            tag === "text" ? fontAttrs : [],
+            el,
+          );
+          renderAttributeSection(
             els.strokeSection,
             els.strokeEditor,
             strokeTags.has(tag) ? strokeAttrs : [],
@@ -2060,12 +2177,6 @@
             els.fillSection,
             els.fillEditor,
             fillTags.has(tag) ? fillAttrs : [],
-            el,
-          );
-          renderAttributeSection(
-            els.fontSection,
-            els.fontEditor,
-            tag === "text" ? fontAttrs : [],
             el,
           );
           renderAttributeSection(
@@ -2102,10 +2213,9 @@
             const stack = document.createElement("div");
             stack.className = "compact-field-stack";
             group.attrs.forEach((attr) => {
-              const create =
-                attr === "points"
-                  ? createFullPropertyField
-                  : createCompactPropertyField;
+              const create = numericAttrs.has(attr)
+                ? createCompactPropertyField
+                : createFullPropertyField;
               stack.append(
                 create(attr, el.getAttribute(attr), (value) =>
                   updateAttributeLive(attr, value),
@@ -2177,7 +2287,7 @@
             start: `<circle class="dot" cx="17" cy="42" r="3.6"></circle>`,
             end: `<circle class="dot" cx="55" cy="16" r="3.6"></circle>`,
             points: `<circle class="dot" cx="17" cy="42" r="3"></circle><circle class="dot" cx="29" cy="15" r="3"></circle><circle class="dot" cx="55" cy="32" r="3"></circle>`,
-            reference: `<path class="guide" d="M24 29h24M38 19l10 10-10 10"></path>`,
+            reference: `<circle class="dot" cx="27" cy="23" r="4"></circle><path class="guide" d="M17 36L27 24 37 36 44 28 55 43"></path>`,
           };
 
           return `<svg viewBox="0 0 72 58">${shape}${guides[kind] || guides.position}</svg>`;
@@ -2693,6 +2803,7 @@
 
         function renderOverlay() {
           els.overlayLayer.innerHTML = "";
+          renderCropOverlay();
           const el = state.selected;
           if (!el) return;
 
@@ -3103,12 +3214,19 @@
           toast("Redone", "good");
         }
 
+        function getExportName(ext) {
+          const raw = (els.fileNameInput?.value || "").trim();
+          const base =
+            raw.replace(/\.(svg|png|jpg|jpeg)$/i, "").trim() || "Untitled";
+          return `${base}.${ext}`;
+        }
+
         function downloadSvg() {
           const blob = new Blob([serializeSvg()], { type: "image/svg+xml" });
           const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = url;
-          link.download = "svg-tool-export.svg";
+          link.download = getExportName("svg");
           link.click();
           URL.revokeObjectURL(url);
           toast("Exported SVG file", "good");
@@ -3141,10 +3259,7 @@
             URL.revokeObjectURL(url);
             const type = format === "jpeg" ? "image/jpeg" : "image/png";
             const ext = format === "jpeg" ? "jpg" : "png";
-            downloadDataUrl(
-              canvas.toDataURL(type, 0.92),
-              `svg-tool-export.${ext}`,
-            );
+            downloadDataUrl(canvas.toDataURL(type, 0.92), getExportName(ext));
             toast(`Exported ${ext.toUpperCase()} file`, "good");
           };
           image.onerror = () => {
@@ -3181,6 +3296,13 @@
               height: 1,
               rx: 12,
             });
+          } else if (tool === "circle") {
+            el = createSvgElement("circle", {
+              ...common,
+              cx: point.x,
+              cy: point.y,
+              r: 1,
+            });
           } else if (tool === "ellipse") {
             el = createSvgElement("ellipse", {
               ...common,
@@ -3189,6 +3311,20 @@
               rx: 1,
               ry: 1,
             });
+          } else if (tool === "image") {
+            const url = prompt("Image URL (href)", "");
+            if (!url) return;
+            el = createSvgElement("image", {
+              href: url,
+              x: point.x,
+              y: point.y,
+              width: 200,
+              height: 200,
+            });
+            els.artLayer.append(el);
+            selectElement(el);
+            setTool("select");
+            return;
           } else if (tool === "line") {
             el = createSvgElement("line", {
               ...common,
@@ -3222,34 +3358,40 @@
         }
 
         function updateShapeDrag(point) {
+          const pt = snapPoint(point);
           const drag = state.drag;
           if (!drag || drag.type !== "draw-shape") return;
           const { el, start, tool } = drag;
-          const x = Math.min(start.x, point.x);
-          const y = Math.min(start.y, point.y);
-          const width = Math.abs(point.x - start.x);
-          const height = Math.abs(point.y - start.y);
+          const x = Math.min(start.x, pt.x);
+          const y = Math.min(start.y, pt.y);
+          const width = Math.abs(pt.x - start.x);
+          const height = Math.abs(pt.y - start.y);
 
           if (tool === "rect") {
             el.setAttribute("x", fmt(x));
             el.setAttribute("y", fmt(y));
             el.setAttribute("width", fmt(width));
             el.setAttribute("height", fmt(height));
+          } else if (tool === "circle") {
+            const r = Math.min(width, height) / 2;
+            el.setAttribute("cx", fmt(x + r));
+            el.setAttribute("cy", fmt(y + r));
+            el.setAttribute("r", fmt(r));
           } else if (tool === "ellipse") {
             el.setAttribute("cx", fmt(x + width / 2));
             el.setAttribute("cy", fmt(y + height / 2));
             el.setAttribute("rx", fmt(width / 2));
             el.setAttribute("ry", fmt(height / 2));
           } else if (tool === "line") {
-            el.setAttribute("x2", fmt(point.x));
-            el.setAttribute("y2", fmt(point.y));
+            el.setAttribute("x2", fmt(pt.x));
+            el.setAttribute("y2", fmt(pt.y));
           }
           renderOverlay();
         }
 
         function startElementDrag(event, el) {
           event.preventDefault();
-          const point = pointFromEvent(event);
+          const point = snapPoint(pointFromEvent(event));
           state.drag = {
             type: "move-element",
             el,
@@ -3273,12 +3415,13 @@
         }
 
         function moveSelectedElement(point) {
+          const pt = snapPoint(point);
           const drag = state.drag;
           if (!drag || drag.type !== "move-element") return;
-          const dx = point.x - drag.last.x;
-          const dy = point.y - drag.last.y;
+          const dx = pt.x - drag.last.x;
+          const dy = pt.y - drag.last.y;
           translateElement(drag.el, dx, dy);
-          drag.last = point;
+          drag.last = pt;
           afterGeometryChange();
         }
 
@@ -3298,11 +3441,10 @@
         function translateElement(el, dx, dy) {
           const tag = el.tagName.toLowerCase();
           const add = (attr, delta) => {
-            if (el.hasAttribute(attr))
-              el.setAttribute(
-                attr,
-                fmt((parseFloat(el.getAttribute(attr)) || 0) + delta),
-              );
+            el.setAttribute(
+              attr,
+              fmt((parseFloat(el.getAttribute(attr)) || 0) + delta),
+            );
           };
 
           if (tag === "rect" || tag === "image" || tag === "text") {
@@ -3385,23 +3527,24 @@
         }
 
         function moveNode(point) {
+          const pt = snapPoint(point);
           const drag = state.drag;
           if (!drag || drag.type !== "move-node") return;
           const segment = state.parsedPath[drag.handle.segmentIndex];
           if (drag.handle.kind === "arc-radius") {
             const endX = segment.values[5];
             const endY = segment.values[6];
-            segment.values[0] = Math.max(1, Math.abs(point.x - endX));
-            segment.values[1] = Math.max(1, Math.abs(point.y - endY));
+            segment.values[0] = Math.max(1, Math.abs(pt.x - endX));
+            segment.values[1] = Math.max(1, Math.abs(pt.y - endY));
             state.selectedNode = {
               ...drag.handle,
               x: endX + segment.values[0],
               y: endY + segment.values[1],
             };
           } else {
-            segment.values[drag.handle.xOffset] = point.x;
-            segment.values[drag.handle.yOffset] = point.y;
-            state.selectedNode = { ...drag.handle, x: point.x, y: point.y };
+            segment.values[drag.handle.xOffset] = pt.x;
+            segment.values[drag.handle.yOffset] = pt.y;
+            state.selectedNode = { ...drag.handle, x: pt.x, y: pt.y };
           }
           state.selected.setAttribute("d", serializePath(state.parsedPath));
           renderOverlay();
@@ -3942,6 +4085,68 @@
           toast("Canvas cleared");
         }
 
+        function trimCanvas() {
+          const children = Array.from(els.artLayer.children);
+          if (!children.length) {
+            toast("No shapes to trim to", "bad");
+            return;
+          }
+          let minX = Infinity,
+            minY = Infinity,
+            maxX = -Infinity,
+            maxY = -Infinity;
+          children.forEach((child) => {
+            const box = safeBBox(child);
+            if (box.width === 0 && box.height === 0) return;
+            minX = Math.min(minX, box.x);
+            minY = Math.min(minY, box.y);
+            maxX = Math.max(maxX, box.x + box.width);
+            maxY = Math.max(maxY, box.y + box.height);
+          });
+          if (!Number.isFinite(minX)) {
+            toast("Could not compute shape bounds", "bad");
+            return;
+          }
+          setViewBox([minX, minY, maxX - minX, maxY - minY]);
+          refreshMarkup();
+          toast("Canvas trimmed", "good");
+        }
+
+        function renderCropOverlay() {
+          document.getElementById("cropRectOverlay")?.remove();
+          if (!state.drag || state.drag.type !== "crop-draw") return;
+          const { start, end } = state.drag;
+          const x = Math.min(start.x, end.x);
+          const y = Math.min(start.y, end.y);
+          const w = Math.abs(end.x - start.x);
+          const h = Math.abs(end.y - start.y);
+          if (w < 1 || h < 1) return;
+          els.overlayLayer.append(
+            createSvgElement("rect", {
+              id: "cropRectOverlay",
+              class: "crop-rect",
+              x,
+              y,
+              width: w,
+              height: h,
+            }),
+          );
+        }
+
+        function applyCrop() {
+          document.getElementById("cropRectOverlay")?.remove();
+          if (!state.drag || state.drag.type !== "crop-draw") return;
+          const { start, end } = state.drag;
+          const x = Math.min(start.x, end.x);
+          const y = Math.min(start.y, end.y);
+          const w = Math.abs(end.x - start.x);
+          const h = Math.abs(end.y - start.y);
+          if (w < 4 || h < 4) return;
+          setViewBox([x, y, w, h]);
+          refreshMarkup();
+          toast("Canvas cropped", "good");
+        }
+
         function handleCanvasPointerDown(event) {
           if (event.button === 2) {
             event.preventDefault();
@@ -3979,20 +4184,36 @@
           const point = pointFromEvent(event);
           const artTarget = event.target.closest?.("#artLayer > *");
 
-          if (state.tool === "select") {
+          if (state.tool === "crop") {
+            state.drag = { type: "crop-draw", start: point, end: point };
+            return;
+          } else if (state.tool === "select") {
             if (artTarget) {
               selectElement(artTarget);
               startElementDrag(event, artTarget);
+            } else if (state.selected) {
+              const box = safeBBox(state.selected);
+              if (
+                point.x >= box.x &&
+                point.x <= box.x + box.width &&
+                point.y >= box.y &&
+                point.y <= box.y + box.height
+              ) {
+                startElementDrag(event, state.selected);
+              } else {
+                selectElement(null);
+                startPan(event);
+              }
             } else {
               selectElement(null);
               startPan(event);
             }
           } else if (state.tool === "pen") {
-            beginPen(point);
+            beginPen(snapPoint(point));
           } else if (state.tool === "polygon" || state.tool === "polyline") {
-            beginPointShape(state.tool, point);
+            beginPointShape(state.tool, snapPoint(point));
           } else {
-            startShape(state.tool, point);
+            startShape(state.tool, snapPoint(point));
           }
         }
 
@@ -4002,12 +4223,20 @@
           if (state.drag?.type === "move-node") moveNode(point);
           if (state.drag?.type === "draw-shape") updateShapeDrag(point);
           if (state.drag?.type === "pan") moveViewport(event);
+          if (state.drag?.type === "crop-draw") {
+            state.drag.end = point;
+            renderCropOverlay();
+          }
         }
 
         function handleCanvasPointerUp() {
           if (state.drag?.type === "draw-shape") {
             setTool("select");
             refreshMarkup();
+          }
+          if (state.drag?.type === "crop-draw") {
+            applyCrop();
+            setTool("select");
           }
           state.drag = null;
           els.canvas.classList.remove("grabbing");
@@ -4067,9 +4296,12 @@
           );
           els.clearBtn.addEventListener("click", clearCanvas);
           els.showGridToggle.addEventListener("change", () => {
-            els.artboardGrid.style.display = els.showGridToggle.checked
-              ? ""
-              : "none";
+            const on = els.showGridToggle.checked;
+            els.artboardGrid.style.display = on ? "" : "none";
+            els.canvas.classList.toggle("no-grid", !on);
+          });
+          els.snapToGridToggle.addEventListener("change", () => {
+            state.snapToGrid = els.snapToGridToggle.checked;
           });
           els.artboardColorPicker.addEventListener("input", () => {
             els.artboard.style.fill = els.artboardColorPicker.value;
@@ -4118,6 +4350,14 @@
           els.markup.addEventListener("input", syncMarkupFromInput);
           els.markup.addEventListener("blur", () => refreshMarkup(true));
 
+          els.fileNameInput.addEventListener("input", () => {
+            const raw = els.fileNameInput.value.trim();
+            const name = raw
+              ? raw.replace(/\.(svg|png|jpg|jpeg)$/i, "") + ".svg"
+              : "Untitled.svg";
+            els.fileNameDisplay.textContent = name;
+          });
+
           window.addEventListener("dragover", (event) => {
             event.preventDefault();
             document.body.classList.add("drag-over");
@@ -4162,11 +4402,13 @@
             if (key === "v") setTool("select");
             if (key === "p") setTool("pen");
             if (key === "r") setTool("rect");
+            if (key === "c") setTool("circle");
             if (key === "o") setTool("ellipse");
             if (key === "l") setTool("line");
             if (key === "g") setTool("polygon");
             if (key === "y") setTool("polyline");
             if (key === "t") setTool("text");
+            if (key === "i") setTool("image");
             if (event.key === "Escape") finishDrawing();
             if (event.key === "Delete" || event.key === "Backspace") {
               if (state.selectedNode) deleteSelectedNode();
