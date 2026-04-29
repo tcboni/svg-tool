@@ -3760,11 +3760,10 @@
           const ctx = measCanvas.getContext("2d");
           ctx.font = `${fontStyle} ${fontWeight} ${screenFontSize}px ${fontFamily}`;
           const metrics = ctx.measureText("Mg");
-          const cssAscent =
-            metrics.fontBoundingBoxAscent ?? screenFontSize * 0.8;
+          const cssAscent = metrics.fontBoundingBoxAscent ?? screenFontSize;
 
-          const left = baselineX - border;
-          const top = baselineY - cssAscent - border;
+          const left = baselineX;
+          const top = baselineY - cssAscent;
 
           const bbox = safeBBox(el);
           const contentWidth = bbox.width > 0 ? bbox.width * ctm.a + 32 : 80;
