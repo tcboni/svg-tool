@@ -4593,9 +4593,8 @@
           );
         }
 
-        function applyCrop() {
+        function applyCrop(rect = cropRectFromDrag(state.drag)) {
           document.getElementById("cropRectOverlay")?.remove();
-          const rect = cropRectFromDrag(state.drag);
           if (!rect) return;
           const { x, y, w, h } = rect;
           if (w < 4 || h < 4) return;
@@ -4953,7 +4952,9 @@
             refreshMarkup();
           }
           if (state.drag?.type === "crop-draw") {
-            applyCrop();
+            const rect = cropRectFromDrag(state.drag);
+            state.drag = null;
+            applyCrop(rect);
             setTool("select");
           }
           state.drag = null;
