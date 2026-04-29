@@ -1207,6 +1207,56 @@
           height: 28px;
         }
       }
+
+      .text-edit-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .text-edit-input {
+        position: absolute;
+        pointer-events: auto;
+        background: transparent;
+        border-radius: 3px;
+        outline: none;
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        caret-color: #000;
+        white-space: pre;
+        overflow: hidden;
+        min-width: 2px;
+      }
+
+      .github-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        color: var(--muted);
+        transition: color 120ms ease;
+        flex-shrink: 0;
+      }
+
+      .github-link:hover {
+        color: var(--text);
+      }
+
+      .github-link svg {
+        width: 17px;
+        height: 17px;
+        fill: currentColor;
+      }
+
+      #textContentInput {
+        width: 100%;
+        box-sizing: border-box;
+      }
     </style>
   </head>
   <body>
@@ -1249,6 +1299,19 @@
           <button class="btn primary" id="downloadBtn" type="button">
             Export SVG
           </button>
+          <a
+            class="github-link"
+            href="https://github.com/tcboni/svg-tool"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="View on GitHub"
+          >
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"
+              />
+            </svg>
+          </a>
         </div>
       </header>
 
@@ -1497,6 +1560,15 @@
           <g id="artLayer"></g>
           <g id="overlayLayer"></g>
         </svg>
+        <div class="text-edit-overlay" id="textEditOverlay" hidden>
+          <div
+            class="text-edit-input"
+            id="textEditInput"
+            contenteditable="true"
+            role="textbox"
+            spellcheck="false"
+          ></div>
+        </div>
         <div id="dropHint" class="drop-hint">Drop SVG to import</div>
         <div id="toast" class="toast" role="status" aria-live="polite"></div>
       </main>
@@ -1594,6 +1666,16 @@
           <div class="section" id="propertiesSection" hidden>
             <h2>Properties</h2>
             <div id="propertyEditor"></div>
+          </div>
+          <div class="section" id="textContentSection" hidden>
+            <h2>Content</h2>
+            <input
+              id="textContentInput"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Type text content…"
+            />
           </div>
           <div class="section" id="fontSection" hidden>
             <h2>Font</h2>
@@ -1804,6 +1886,7 @@
           isRestoring: false,
           snapToGrid: false,
           clipboard: null,
+          editingText: null,
         };
 
         const els = {
@@ -1836,6 +1919,11 @@
           selectionInfo: document.getElementById("selectionInfo"),
           propertiesSection: document.getElementById("propertiesSection"),
           propertyEditor: document.getElementById("propertyEditor"),
+          textContentSection: document.getElementById("textContentSection"),
+          textContentInput: document.getElementById("textContentInput"),
+          textEditOverlay: document.getElementById("textEditOverlay"),
+          textEditInput: document.getElementById("textEditInput"),
+          stageWrap: document.querySelector(".stage-wrap"),
           strokeSection: document.getElementById("strokeSection"),
           strokeEditor: document.getElementById("strokeEditor"),
           fillSection: document.getElementById("fillSection"),
@@ -2233,6 +2321,7 @@
         }
 
         function selectElement(el) {
+          if (state.editingText && state.editingText !== el) commitTextEdit();
           state.selected = el && els.artLayer.contains(el) ? el : null;
           state.selectedNode = null;
           state.parsedPath =
@@ -2271,6 +2360,7 @@
             els.duplicateBtn.disabled = true;
             els.deleteElementBtn.disabled = true;
             els.propertiesSection.hidden = true;
+            els.textContentSection.hidden = true;
             els.strokeSection.hidden = true;
             els.fillSection.hidden = true;
             els.fontSection.hidden = true;
@@ -2290,6 +2380,15 @@
             els.propertyEditor.append(
               createPropertyControls(tag, properties, el),
             );
+          }
+
+          if (tag === "text") {
+            els.textContentSection.hidden = false;
+            if (document.activeElement !== els.textContentInput) {
+              els.textContentInput.value = el.textContent;
+            }
+          } else {
+            els.textContentSection.hidden = true;
           }
 
           renderAttributeSection(
@@ -3537,8 +3636,6 @@
               "stroke-linecap": "round",
             });
           } else if (tool === "text") {
-            const content = prompt("Text content", "Text");
-            if (!content) return;
             el = createSvgElement("text", {
               x: point.x,
               y: point.y,
@@ -3547,10 +3644,11 @@
               "font-family": "Inter, system-ui, sans-serif",
               "font-weight": 800,
             });
-            el.textContent = content;
+            el.textContent = "";
             els.artLayer.append(el);
             selectElement(el);
             setTool("select");
+            startTextEdit(el);
             return;
           }
           els.artLayer.append(el);
@@ -3589,6 +3687,113 @@
             el.setAttribute("y2", fmt(pt.y));
           }
           renderOverlay();
+        }
+
+        function startTextEdit(el) {
+          if (state.editingText && state.editingText !== el) commitTextEdit();
+          state.editingText = el;
+          el._savedOpacity = el.style.opacity;
+          el._savedPointerEvents = el.style.pointerEvents;
+          el.style.opacity = "0";
+          el.style.pointerEvents = "none";
+
+          const ctm = els.canvas.getScreenCTM();
+          const svgFontSize = parseFloat(el.getAttribute("font-size")) || 44;
+          const screenFontSize = ctm ? svgFontSize * ctm.a : svgFontSize;
+          const fontFamily =
+            el.getAttribute("font-family") || "Inter, system-ui, sans-serif";
+          const fontWeight = el.getAttribute("font-weight") || "normal";
+          const fontStyle = el.getAttribute("font-style") || "normal";
+          const fill = el.getAttribute("fill") || "#000000";
+
+          const input = els.textEditInput;
+          input.style.fontFamily = fontFamily;
+          input.style.fontSize = screenFontSize + "px";
+          input.style.fontWeight = fontWeight;
+          input.style.fontStyle = fontStyle;
+          input.style.lineHeight = "1";
+          input.style.color = fill;
+          input.textContent = el.textContent;
+
+          positionTextEditOverlay();
+          els.textEditOverlay.hidden = false;
+          requestAnimationFrame(() => {
+            input.focus();
+            const sel = window.getSelection();
+            if (sel && input.firstChild) {
+              const range = document.createRange();
+              range.selectNodeContents(input);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
+          });
+        }
+
+        function positionTextEditOverlay() {
+          const el = state.editingText;
+          if (!el) return;
+          const ctm = els.canvas.getScreenCTM();
+          if (!ctm) return;
+          const stageRect = els.stageWrap.getBoundingClientRect();
+          const input = els.textEditInput;
+          const svgFontSize = parseFloat(el.getAttribute("font-size")) || 44;
+          const screenFontSize = svgFontSize * ctm.a;
+          const fontFamily =
+            el.getAttribute("font-family") || "Inter, system-ui, sans-serif";
+          const fontWeight = el.getAttribute("font-weight") || "normal";
+          const fontStyle = el.getAttribute("font-style") || "normal";
+          const border = 1.5;
+
+          // Convert SVG baseline (y attribute) to screen coordinates
+          const svgX = parseFloat(el.getAttribute("x")) || 0;
+          const svgY = parseFloat(el.getAttribute("y")) || 0;
+          const pt = els.canvas.createSVGPoint();
+          pt.x = svgX;
+          pt.y = svgY;
+          const screen = pt.matrixTransform(ctm);
+          const baselineX = screen.x - stageRect.left;
+          const baselineY = screen.y - stageRect.top;
+
+          // Measure the CSS font's ascender (distance from baseline to EM top)
+          // so the HTML text baseline aligns exactly with the SVG text baseline
+          const measCanvas = document.createElement("canvas");
+          const ctx = measCanvas.getContext("2d");
+          ctx.font = `${fontStyle} ${fontWeight} ${screenFontSize}px ${fontFamily}`;
+          const metrics = ctx.measureText("Mg");
+          const cssAscent =
+            metrics.fontBoundingBoxAscent ?? screenFontSize * 0.8;
+
+          const left = baselineX - border;
+          const top = baselineY - cssAscent - border;
+
+          const bbox = safeBBox(el);
+          const contentWidth = bbox.width > 0 ? bbox.width * ctm.a + 32 : 80;
+          const availableWidth = stageRect.width - left - border * 2;
+          input.style.left = left + "px";
+          input.style.top = top + "px";
+          input.style.width =
+            Math.min(Math.max(contentWidth, 2), availableWidth) + "px";
+        }
+
+        function commitTextEdit() {
+          const el = state.editingText;
+          if (!el) return;
+          state.editingText = null;
+          const value = els.textEditInput.textContent;
+          els.textEditOverlay.hidden = true;
+          els.textEditInput.textContent = "";
+          if (!value.trim() && els.artLayer.contains(el)) {
+            els.artLayer.removeChild(el);
+            selectElement(null);
+          } else {
+            el.textContent = value;
+            el.style.opacity = el._savedOpacity ?? "";
+            el.style.pointerEvents = el._savedPointerEvents ?? "";
+            delete el._savedOpacity;
+            delete el._savedPointerEvents;
+            refreshMarkup();
+            renderInspector();
+          }
         }
 
         function startElementDrag(event, el) {
@@ -4431,13 +4636,13 @@
               // nb.x === ob.x means the left edge is fixed (right handle moved).
               // nb.y === ob.y means the top edge is fixed (bottom handle moved).
               const leftFixed = nb.x === ob.x;
-              const topFixed  = nb.y === ob.y;
-              r  = Math.min(nb.w, nb.h) / 2;
-              cx = leftFixed ? ob.x + r           : ob.x + ob.w - r;
-              cy = topFixed  ? ob.y + r           : ob.y + ob.h - r;
+              const topFixed = nb.y === ob.y;
+              r = Math.min(nb.w, nb.h) / 2;
+              cx = leftFixed ? ob.x + r : ob.x + ob.w - r;
+              cy = topFixed ? ob.y + r : ob.y + ob.h - r;
             } else {
               // Edge handle: the center on the untouched axis stays put naturally.
-              r  = !hChanged ? nb.w / 2 : nb.h / 2;
+              r = !hChanged ? nb.w / 2 : nb.h / 2;
               cx = nb.x + nb.w / 2;
               cy = nb.y + nb.h / 2;
             }
@@ -4739,6 +4944,72 @@
           window.addEventListener("pointermove", handleCanvasPointerMove);
           window.addEventListener("pointerup", handleCanvasPointerUp);
 
+          els.canvas.addEventListener("dblclick", (event) => {
+            const artTarget = event.target.closest?.("#artLayer > *");
+            if (artTarget?.tagName.toLowerCase() === "text") {
+              event.preventDefault();
+              selectElement(artTarget);
+              startTextEdit(artTarget);
+            }
+          });
+
+          els.textEditInput.addEventListener("input", () => {
+            if (state.editingText) {
+              state.editingText.textContent = els.textEditInput.textContent;
+              positionTextEditOverlay();
+              renderOverlay();
+              if (
+                els.textContentInput &&
+                !els.textContentInput.matches(":focus")
+              ) {
+                els.textContentInput.value = els.textEditInput.textContent;
+              }
+            }
+          });
+
+          els.textEditInput.addEventListener("paste", (event) => {
+            event.preventDefault();
+            const text = (event.clipboardData || window.clipboardData).getData(
+              "text/plain",
+            );
+            document.execCommand("insertText", false, text);
+          });
+
+          els.textEditInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === "Escape") {
+              event.preventDefault();
+              commitTextEdit();
+            }
+          });
+
+          els.textEditInput.addEventListener("blur", (event) => {
+            if (
+              state.editingText &&
+              event.relatedTarget !== els.textContentInput
+            ) {
+              commitTextEdit();
+            }
+          });
+
+          els.textContentInput.addEventListener("input", () => {
+            if (state.selected?.tagName.toLowerCase() === "text") {
+              state.selected.textContent = els.textContentInput.value;
+              if (state.editingText === state.selected) {
+                els.textEditInput.textContent = els.textContentInput.value;
+                positionTextEditOverlay();
+              }
+              renderOverlay();
+              refreshMarkup();
+            }
+          });
+
+          els.textContentInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              els.textContentInput.blur();
+            }
+          });
+
           els.fileInput.addEventListener("change", async (event) => {
             const file = event.target.files?.[0];
             if (!file) return;
@@ -4873,6 +5144,15 @@
               return;
             }
             if (event.target.matches("input, textarea")) return;
+            if (
+              (event.key === "Enter" || event.key === "F2") &&
+              state.selected?.tagName.toLowerCase() === "text" &&
+              !state.editingText
+            ) {
+              event.preventDefault();
+              startTextEdit(state.selected);
+              return;
+            }
             if (mod && key === "c") {
               copyElement();
               return;
