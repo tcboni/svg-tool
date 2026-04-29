@@ -3073,11 +3073,31 @@
           return segments.some((segment) => segment.cmd === "Z");
         }
 
+        function overlayUnitsPerPixel() {
+          const ctm = els.canvas.getScreenCTM();
+          const fallbackX =
+            (state.viewport?.width ?? state.viewBox[2]) /
+            Math.max(1, els.canvas.clientWidth);
+          const fallbackY =
+            (state.viewport?.height ?? state.viewBox[3]) /
+            Math.max(1, els.canvas.clientHeight);
+          const x =
+            ctm && Number.isFinite(ctm.a) && Math.abs(ctm.a) > 1e-9
+              ? 1 / Math.abs(ctm.a)
+              : fallbackX;
+          const y =
+            ctm && Number.isFinite(ctm.d) && Math.abs(ctm.d) > 1e-9
+              ? 1 / Math.abs(ctm.d)
+              : fallbackY;
+          return { x, y, unit: (x + y) / 2 };
+        }
+
         function renderOverlay() {
           els.overlayLayer.innerHTML = "";
           renderCropOverlay();
           const el = state.selected;
           if (!el) return;
+          const overlayScale = overlayUnitsPerPixel();
 
           const box = safeBBox(el);
           if (box.width || box.height) {
@@ -3091,13 +3111,8 @@
               }),
             );
 
-            const hs = state.viewport
-              ? Math.max(
-                  3,
-                  (5 * state.viewport.width) /
-                    Math.max(1, els.canvas.clientWidth),
-                )
-              : 5;
+            const hsX = 5 * overlayScale.x;
+            const hsY = 5 * overlayScale.y;
             const bx = box.x,
               by = box.y,
               bw = box.width,
@@ -3151,10 +3166,10 @@
               els.overlayLayer.append(
                 createSvgElement("rect", {
                   class: "resize-handle",
-                  x: fmt(cx - hs),
-                  y: fmt(cy - hs),
-                  width: fmt(hs * 2),
-                  height: fmt(hs * 2),
+                  x: fmt(cx - hsX),
+                  y: fmt(cy - hsY),
+                  width: fmt(hsX * 2),
+                  height: fmt(hsY * 2),
                   "data-resize-hx": hx,
                   "data-resize-hy": hy,
                   style: `cursor:${cur}`,
@@ -3197,7 +3212,7 @@
               class: `${handle.role === "ctrl" ? "ctrl-handle" : "node-handle"} ${sameHandle(handle, state.selectedNode) ? "active" : ""}`,
               cx: handle.x,
               cy: handle.y,
-              r: handle.role === "ctrl" ? 3.5 : 6,
+              r: fmt((handle.role === "ctrl" ? 3.5 : 6) * overlayScale.unit),
               "data-segment": handle.segmentIndex,
               "data-role": handle.role,
               "data-offset": handle.offset,
@@ -3207,19 +3222,21 @@
             els.overlayLayer.append(circle);
           });
 
-          renderPathFloatingActions(handles);
+          renderPathFloatingActions(handles, overlayScale);
         }
 
-        function renderPathFloatingActions(handles) {
+        function renderPathFloatingActions(handles, overlayScale) {
           const start = firstPathPoint(state.parsedPath);
           const end = lastPathPoint(state.parsedPath);
           if (start) {
             els.overlayLayer.append(
-              createPathActionGroup(start, "start", -52, 12),
+              createPathActionGroup(start, "start", -52, 12, overlayScale),
             );
           }
           if (end) {
-            els.overlayLayer.append(createPathActionGroup(end, "end", -52, 12));
+            els.overlayLayer.append(
+              createPathActionGroup(end, "end", -52, 12, overlayScale),
+            );
           }
 
           const selected = handles.find((handle) =>
@@ -3227,14 +3244,14 @@
           );
           const segment = selected && state.parsedPath[selected.segmentIndex];
           if (selected?.role === "end" && segment?.cmd !== "M") {
-            els.overlayLayer.append(createDeleteNodeAction(selected));
+            els.overlayLayer.append(createDeleteNodeAction(selected, overlayScale));
           }
         }
 
-        function createPathActionGroup(point, endName, dx, dy) {
+        function createPathActionGroup(point, endName, dx, dy, overlayScale) {
           const group = createSvgElement("g", {
             class: "path-floating-actions",
-            transform: `translate(${fmt(point.x + dx)} ${fmt(point.y + dy)})`,
+            transform: `translate(${fmt(point.x + dx * overlayScale.x)} ${fmt(point.y + dy * overlayScale.y)}) scale(${fmt(overlayScale.x)} ${fmt(overlayScale.y)})`,
           });
           ["line", "cubic", "quadratic", "arc"].forEach((type, index) => {
             group.append(createPathActionButton(endName, type, index * 27, 0));
@@ -3307,10 +3324,10 @@
           });
         }
 
-        function createDeleteNodeAction(point) {
+        function createDeleteNodeAction(point, overlayScale) {
           const group = createSvgElement("g", {
             class: "path-delete-action",
-            transform: `translate(${fmt(point.x + 10)} ${fmt(point.y - 27)})`,
+            transform: `translate(${fmt(point.x + 10 * overlayScale.x)} ${fmt(point.y - 27 * overlayScale.y)}) scale(${fmt(overlayScale.x)} ${fmt(overlayScale.y)})`,
             "data-path-delete-node": "true",
           });
           group.append(
