@@ -466,6 +466,62 @@
         pointer-events: none;
       }
 
+      .resize-handle {
+        fill: #ffffff;
+        stroke: rgba(0, 0, 0, 0.7);
+        stroke-width: 1.4;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .context-menu {
+        position: fixed;
+        z-index: 200;
+        background: var(--panel);
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        padding: 4px;
+        min-width: 190px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(8px);
+      }
+
+      .context-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 5px 9px;
+        border-radius: 5px;
+        background: transparent;
+        border: 0;
+        color: var(--text);
+        font-size: 12px;
+        text-align: left;
+        cursor: pointer;
+        gap: 20px;
+      }
+
+      .context-item:hover:not(:disabled) {
+        background: var(--panel-2);
+      }
+
+      .context-item:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+
+      .context-kbd {
+        color: var(--muted);
+        font-size: 11px;
+        flex-shrink: 0;
+      }
+
+      .context-sep {
+        height: 1px;
+        background: var(--line);
+        margin: 3px 4px;
+      }
+
       .drop-hint {
         position: absolute;
         inset: 14px;
@@ -1035,6 +1091,15 @@
         line-height: 1.55;
       }
 
+      .selectionInfo {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       .kbd {
         display: inline-grid;
         place-items: center;
@@ -1219,6 +1284,33 @@
             <circle cx="6" cy="6" r="2.5"></circle>
             <circle cx="6" cy="18" r="2.5"></circle>
             <path d="M8 8L21 21M8 16L21 3"></path>
+          </svg>
+        </button>
+        <div class="divider"></div>
+        <button
+          class="tool"
+          id="undoBtn"
+          data-tool="undo"
+          data-tip="Undo (⌘Z)"
+          aria-label="Undo"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M3 7l4-4M3 7l4 4"></path>
+            <path d="M3 7h8a6 6 0 0 1 0 12H7"></path>
+          </svg>
+        </button>
+        <button
+          class="tool"
+          id="redoBtn"
+          data-tool="redo"
+          data-tip="Redo (⌘⇧Z)"
+          aria-label="Redo"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M21 7l-4-4M21 7l-4 4"></path>
+            <path d="M21 7h-8a6 6 0 0 0 0 12h4"></path>
           </svg>
         </button>
         <div class="divider"></div>
@@ -1422,7 +1514,7 @@
           <div class="section">
             <h2>Selection</h2>
             <div class="selection-row">
-              <div id="selectionInfo" class="empty">
+              <div id="selectionInfo" class="selectionInfo">
                 No element selected. Pick the Select tool and click any SVG
                 element.
               </div>
@@ -1665,6 +1757,30 @@
         </section>
       </aside>
     </div>
+
+    <div id="contextMenu" class="context-menu" hidden>
+      <button class="context-item" data-action="cut">
+        Cut <span class="context-kbd">⌘X</span>
+      </button>
+      <button class="context-item" data-action="copy">
+        Copy <span class="context-kbd">⌘C</span>
+      </button>
+      <button class="context-item" data-action="paste" id="contextPasteItem">
+        Paste <span class="context-kbd">⌘V</span>
+      </button>
+      <div class="context-sep"></div>
+      <button class="context-item" data-action="bring-front">
+        Bring to Front
+      </button>
+      <button class="context-item" data-action="bring-forward">
+        Move Forward
+      </button>
+      <button class="context-item" data-action="send-backward">
+        Move Backward
+      </button>
+      <button class="context-item" data-action="send-back">Send to Back</button>
+    </div>
+
     <script>
       (() => {
         const SVG_NS = "http://www.w3.org/2000/svg";
@@ -1687,6 +1803,7 @@
           historyReady: false,
           isRestoring: false,
           snapToGrid: false,
+          clipboard: null,
         };
 
         const els = {
@@ -1752,6 +1869,10 @@
           exportJpgBtn: document.getElementById("exportJpgBtn"),
           fileNameInput: document.getElementById("fileNameInput"),
           fileNameDisplay: document.getElementById("fileNameDisplay"),
+          undoBtn: document.getElementById("undoBtn"),
+          redoBtn: document.getElementById("redoBtn"),
+          contextMenu: document.getElementById("contextMenu"),
+          contextPasteItem: document.getElementById("contextPasteItem"),
         };
 
         const toolLabels = {
@@ -1981,6 +2102,14 @@
             trimCanvas();
             return;
           }
+          if (tool === "undo") {
+            undo();
+            return;
+          }
+          if (tool === "redo") {
+            redo();
+            return;
+          }
           if (state.drawing && state.drawing.tool !== tool)
             finishDrawing(false);
           state.tool = tool;
@@ -2118,10 +2247,12 @@
         function renderSelectionSummary() {
           const el = state.selected;
           if (!el) {
+            els.selectionInfo.className = "empty";
             els.selectionInfo.innerHTML =
               "No element selected. Pick the Select tool and click any SVG element.";
             return;
           }
+          els.selectionInfo.className = "selectionInfo";
           const tag = el.tagName.toLowerCase();
           const box = safeBBox(el);
           const id = el.getAttribute("id") || "(none)";
@@ -2818,6 +2949,77 @@
                 height: box.height,
               }),
             );
+
+            const hs = state.viewport
+              ? Math.max(
+                  3,
+                  (5 * state.viewport.width) /
+                    Math.max(1, els.canvas.clientWidth),
+                )
+              : 5;
+            const bx = box.x,
+              by = box.y,
+              bw = box.width,
+              bh = box.height;
+            [
+              { hx: "left", hy: "top", cx: bx, cy: by, cur: "nw-resize" },
+              {
+                hx: "center",
+                hy: "top",
+                cx: bx + bw / 2,
+                cy: by,
+                cur: "n-resize",
+              },
+              { hx: "right", hy: "top", cx: bx + bw, cy: by, cur: "ne-resize" },
+              {
+                hx: "left",
+                hy: "center",
+                cx: bx,
+                cy: by + bh / 2,
+                cur: "w-resize",
+              },
+              {
+                hx: "right",
+                hy: "center",
+                cx: bx + bw,
+                cy: by + bh / 2,
+                cur: "e-resize",
+              },
+              {
+                hx: "left",
+                hy: "bottom",
+                cx: bx,
+                cy: by + bh,
+                cur: "sw-resize",
+              },
+              {
+                hx: "center",
+                hy: "bottom",
+                cx: bx + bw / 2,
+                cy: by + bh,
+                cur: "s-resize",
+              },
+              {
+                hx: "right",
+                hy: "bottom",
+                cx: bx + bw,
+                cy: by + bh,
+                cur: "se-resize",
+              },
+            ].forEach(({ hx, hy, cx, cy, cur }) => {
+              els.overlayLayer.append(
+                createSvgElement("rect", {
+                  class: "resize-handle",
+                  x: fmt(cx - hs),
+                  y: fmt(cy - hs),
+                  width: fmt(hs * 2),
+                  height: fmt(hs * 2),
+                  "data-resize-hx": hx,
+                  "data-resize-hy": hy,
+                  style: `cursor:${cur}`,
+                }),
+              );
+            });
           }
 
           if (el.tagName.toLowerCase() !== "path") return;
@@ -4147,10 +4349,255 @@
           toast("Canvas cropped", "good");
         }
 
+        function captureAttrs(el) {
+          const tag = el.tagName.toLowerCase();
+          const snap = {};
+          const save = (...keys) =>
+            keys.forEach((k) => {
+              snap[k] = el.getAttribute(k);
+            });
+          if (tag === "line") save("x1", "y1", "x2", "y2");
+          else if (tag === "polygon" || tag === "polyline") save("points");
+          else if (tag === "path") save("d");
+          else if (tag === "text") save("x", "y", "font-size");
+          return snap;
+        }
+
+        function startResizeDrag(event, hx, hy) {
+          if (!state.selected) return;
+          const box = safeBBox(state.selected);
+          state.drag = {
+            type: "resize",
+            el: state.selected,
+            hx,
+            hy,
+            startPoint: snapPoint(pointFromEvent(event)),
+            startBox: { x: box.x, y: box.y, w: box.width, h: box.height },
+            startAttrs: captureAttrs(state.selected),
+          };
+          document.body.classList.add("dragging-canvas");
+        }
+
+        function computeNewBox(sb, hx, hy, dx, dy) {
+          let { x, y, w, h } = sb;
+          let nx = x,
+            ny = y,
+            nw = w,
+            nh = h;
+          if (hx === "left") {
+            nx = x + dx;
+            nw = w - dx;
+            if (nw < 1) {
+              nx = x + w - 1;
+              nw = 1;
+            }
+          } else if (hx === "right") {
+            nw = Math.max(1, w + dx);
+          }
+          if (hy === "top") {
+            ny = y + dy;
+            nh = h - dy;
+            if (nh < 1) {
+              ny = y + h - 1;
+              nh = 1;
+            }
+          } else if (hy === "bottom") {
+            nh = Math.max(1, h + dy);
+          }
+          return { x: nx, y: ny, w: nw, h: nh };
+        }
+
+        function resizeElement(el, ob, nb, sa) {
+          const tag = el.tagName.toLowerCase();
+          const sX = ob.w > 0 ? nb.w / ob.w : 1;
+          const sY = ob.h > 0 ? nb.h / ob.h : 1;
+          const mapX = (v) =>
+            ob.w > 0 ? nb.x + (v - ob.x) * sX : nb.x + nb.w / 2;
+          const mapY = (v) =>
+            ob.h > 0 ? nb.y + (v - ob.y) * sY : nb.y + nb.h / 2;
+          const orig = (a) => parseFloat(sa[a] || 0);
+
+          if (tag === "rect" || tag === "image") {
+            el.setAttribute("x", fmt(nb.x));
+            el.setAttribute("y", fmt(nb.y));
+            el.setAttribute("width", fmt(nb.w));
+            el.setAttribute("height", fmt(nb.h));
+          } else if (tag === "circle") {
+            const wChanged = nb.w !== ob.w;
+            const hChanged = nb.h !== ob.h;
+            let cx, cy, r;
+            if (wChanged && hChanged) {
+              // Corner handle: anchor the opposite two edges so they don't drift.
+              // nb.x === ob.x means the left edge is fixed (right handle moved).
+              // nb.y === ob.y means the top edge is fixed (bottom handle moved).
+              const leftFixed = nb.x === ob.x;
+              const topFixed  = nb.y === ob.y;
+              r  = Math.min(nb.w, nb.h) / 2;
+              cx = leftFixed ? ob.x + r           : ob.x + ob.w - r;
+              cy = topFixed  ? ob.y + r           : ob.y + ob.h - r;
+            } else {
+              // Edge handle: the center on the untouched axis stays put naturally.
+              r  = !hChanged ? nb.w / 2 : nb.h / 2;
+              cx = nb.x + nb.w / 2;
+              cy = nb.y + nb.h / 2;
+            }
+            el.setAttribute("cx", fmt(cx));
+            el.setAttribute("cy", fmt(cy));
+            el.setAttribute("r", fmt(r));
+          } else if (tag === "ellipse") {
+            el.setAttribute("cx", fmt(nb.x + nb.w / 2));
+            el.setAttribute("cy", fmt(nb.y + nb.h / 2));
+            el.setAttribute("rx", fmt(nb.w / 2));
+            el.setAttribute("ry", fmt(nb.h / 2));
+          } else if (tag === "line") {
+            el.setAttribute("x1", fmt(mapX(orig("x1"))));
+            el.setAttribute("y1", fmt(mapY(orig("y1"))));
+            el.setAttribute("x2", fmt(mapX(orig("x2"))));
+            el.setAttribute("y2", fmt(mapY(orig("y2"))));
+          } else if (tag === "polygon" || tag === "polyline") {
+            const pts = (sa.points || "")
+              .trim()
+              .split(/\s+/)
+              .map((pair) => {
+                const [px, py] = pair.split(",").map(Number);
+                return `${fmt(mapX(px))},${fmt(mapY(py))}`;
+              });
+            el.setAttribute("points", pts.join(" "));
+          } else if (tag === "path") {
+            const segs = parsePath(sa.d || "");
+            segs.forEach((seg) => {
+              if (seg.cmd === "M" || seg.cmd === "L") {
+                seg.values[0] = mapX(seg.values[0]);
+                seg.values[1] = mapY(seg.values[1]);
+              } else if (seg.cmd === "C") {
+                seg.values[0] = mapX(seg.values[0]);
+                seg.values[1] = mapY(seg.values[1]);
+                seg.values[2] = mapX(seg.values[2]);
+                seg.values[3] = mapY(seg.values[3]);
+                seg.values[4] = mapX(seg.values[4]);
+                seg.values[5] = mapY(seg.values[5]);
+              } else if (seg.cmd === "Q") {
+                seg.values[0] = mapX(seg.values[0]);
+                seg.values[1] = mapY(seg.values[1]);
+                seg.values[2] = mapX(seg.values[2]);
+                seg.values[3] = mapY(seg.values[3]);
+              } else if (seg.cmd === "A") {
+                seg.values[0] = Math.max(0.1, seg.values[0] * sX);
+                seg.values[1] = Math.max(0.1, seg.values[1] * sY);
+                seg.values[5] = mapX(seg.values[5]);
+                seg.values[6] = mapY(seg.values[6]);
+              }
+            });
+            el.setAttribute("d", serializePath(segs));
+          } else if (tag === "text") {
+            const fs = parseFloat(sa["font-size"] || 16);
+            el.setAttribute("font-size", fmt(Math.max(1, fs * sY)));
+            el.setAttribute("x", fmt(mapX(orig("x"))));
+            el.setAttribute("y", fmt(mapY(orig("y"))));
+          }
+        }
+
+        function updateResize(rawPoint) {
+          const drag = state.drag;
+          if (!drag || drag.type !== "resize") return;
+          const pt = snapPoint(rawPoint);
+          const dx = pt.x - drag.startPoint.x;
+          const dy = pt.y - drag.startPoint.y;
+          const newBox = computeNewBox(drag.startBox, drag.hx, drag.hy, dx, dy);
+          resizeElement(drag.el, drag.startBox, newBox, drag.startAttrs);
+          afterGeometryChange();
+        }
+
+        function showContextMenu(x, y) {
+          els.contextPasteItem.disabled = !state.clipboard;
+          els.contextMenu.style.left = `${x}px`;
+          els.contextMenu.style.top = `${y}px`;
+          els.contextMenu.hidden = false;
+          const rect = els.contextMenu.getBoundingClientRect();
+          if (rect.right > window.innerWidth - 4)
+            els.contextMenu.style.left = `${x - rect.width}px`;
+          if (rect.bottom > window.innerHeight - 4)
+            els.contextMenu.style.top = `${y - rect.height}px`;
+        }
+
+        function hideContextMenu() {
+          els.contextMenu.hidden = true;
+        }
+
+        function cutElement() {
+          if (!state.selected) return;
+          state.clipboard = state.selected.cloneNode(true);
+          state.selected.remove();
+          selectElement(null);
+          refreshMarkup();
+          toast("Cut", "good");
+        }
+
+        function copyElement() {
+          if (!state.selected) return;
+          state.clipboard = state.selected.cloneNode(true);
+          toast("Copied", "good");
+        }
+
+        function pasteElement() {
+          if (!state.clipboard) return;
+          const clone = state.clipboard.cloneNode(true);
+          if (clone.hasAttribute("id"))
+            clone.setAttribute("id", `${clone.getAttribute("id")}-copy`);
+          translateElement(clone, 24, 24);
+          els.artLayer.append(clone);
+          selectElement(clone);
+          refreshMarkup();
+          toast("Pasted", "good");
+        }
+
+        function handleContextAction(action) {
+          const el = state.selected;
+          switch (action) {
+            case "cut":
+              cutElement();
+              break;
+            case "copy":
+              copyElement();
+              break;
+            case "paste":
+              pasteElement();
+              break;
+            case "bring-front":
+              if (!el) return;
+              els.artLayer.append(el);
+              afterGeometryChange();
+              toast("Brought to front", "good");
+              break;
+            case "send-back":
+              if (!el) return;
+              els.artLayer.insertBefore(el, els.artLayer.firstChild);
+              afterGeometryChange();
+              toast("Sent to back", "good");
+              break;
+            case "bring-forward": {
+              if (!el) return;
+              const next = el.nextElementSibling;
+              if (next) next.after(el);
+              afterGeometryChange();
+              toast("Moved forward", "good");
+              break;
+            }
+            case "send-backward": {
+              if (!el) return;
+              const prev = el.previousElementSibling;
+              if (prev) prev.before(el);
+              afterGeometryChange();
+              toast("Moved backward", "good");
+              break;
+            }
+          }
+        }
+
         function handleCanvasPointerDown(event) {
           if (event.button === 2) {
             event.preventDefault();
-            finishDrawing();
+            if (state.tool !== "select") finishDrawing();
             return;
           }
           if (event.button === 1 || event.altKey) {
@@ -4170,6 +4617,17 @@
                 pathAction.dataset.pathAddType,
               );
             }
+            return;
+          }
+          const resizeTarget =
+            state.tool === "select" && event.target.closest?.(".resize-handle");
+          if (resizeTarget) {
+            event.preventDefault();
+            startResizeDrag(
+              event,
+              resizeTarget.dataset.resizeHx,
+              resizeTarget.dataset.resizeHy,
+            );
             return;
           }
           const overlayTarget = event.target.closest?.(
@@ -4223,6 +4681,7 @@
           if (state.drag?.type === "move-node") moveNode(point);
           if (state.drag?.type === "draw-shape") updateShapeDrag(point);
           if (state.drag?.type === "pan") moveViewport(event);
+          if (state.drag?.type === "resize") updateResize(point);
           if (state.drag?.type === "crop-draw") {
             state.drag.end = point;
             renderCropOverlay();
@@ -4256,7 +4715,15 @@
           els.canvas.addEventListener("pointerdown", handleCanvasPointerDown);
           els.canvas.addEventListener("contextmenu", (event) => {
             event.preventDefault();
-            finishDrawing();
+            if (state.tool !== "select") {
+              finishDrawing();
+              return;
+            }
+            const artTarget = event.target.closest?.("#artLayer > *");
+            if (artTarget) {
+              selectElement(artTarget);
+              showContextMenu(event.clientX, event.clientY);
+            }
           });
           els.canvas.addEventListener(
             "wheel",
@@ -4380,8 +4847,15 @@
           window.addEventListener("focus", updateClipboardImportButton);
           window.addEventListener("pointerdown", updateClipboardImportButton);
           document.addEventListener("pointerdown", (event) => {
+            if (!event.target.closest?.("#contextMenu")) hideContextMenu();
             if (state.drawing && !event.target.closest?.(".stage-wrap, .rail"))
               finishDrawing(false);
+          });
+          els.contextMenu.addEventListener("click", (event) => {
+            const item = event.target.closest("[data-action]");
+            if (!item || item.disabled) return;
+            hideContextMenu();
+            handleContextAction(item.dataset.action);
           });
 
           document.addEventListener("keydown", (event) => {
@@ -4399,6 +4873,18 @@
               return;
             }
             if (event.target.matches("input, textarea")) return;
+            if (mod && key === "c") {
+              copyElement();
+              return;
+            }
+            if (mod && key === "x") {
+              cutElement();
+              return;
+            }
+            if (mod && key === "v") {
+              pasteElement();
+              return;
+            }
             if (key === "v") setTool("select");
             if (key === "p") setTool("pen");
             if (key === "r") setTool("rect");
