@@ -3462,6 +3462,10 @@
         let clipboardPermissionDenied = false;
 
         async function updateClipboardImportButton() {
+          if (window.location.protocol === "file:") {
+            els.clipboardImportBtn.hidden = true;
+            return;
+          }
           if (!navigator.clipboard?.readText || clipboardPermissionDenied)
             return;
           try {
@@ -3475,6 +3479,10 @@
         }
 
         async function importFromClipboard() {
+          if (window.location.protocol === "file:") {
+            toast("Clipboard import is unavailable with file:// URLs", "bad");
+            return;
+          }
           try {
             const text = await navigator.clipboard.readText();
             if (!isSvgMarkup(text)) {
