@@ -627,30 +627,25 @@
         fill: #ffffff;
       }
 
-      .appearance-row {
+      .field-row {
         display: flex;
         align-items: center;
         gap: 7px;
         font-size: 12px;
         color: var(--text);
         cursor: pointer;
-        margin-bottom: 8px;
       }
 
-      .appearance-row input[type="checkbox"] {
+      .field-row + .field-row {
+        margin-top: 8px;
+      }
+
+      .field-row input[type="checkbox"] {
         accent-color: #2563eb;
         width: 14px;
         height: 14px;
         cursor: pointer;
         flex-shrink: 0;
-      }
-
-      .attr-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 12px;
-        color: var(--text);
       }
 
       .color-swatch {
@@ -1750,16 +1745,59 @@
             </div>
           </div>
           <div class="section">
+            <h2>Viewbox</h2>
+            <div class="canvas-size-card">
+              <div class="property-diagram" aria-hidden="true">
+                <svg viewBox="0 0 72 58">
+                  <rect
+                    class="shape"
+                    x="17"
+                    y="13"
+                    width="38"
+                    height="30"
+                    rx="3"
+                  ></rect>
+                  <path class="guide" d="M17 48h38M60 13v30"></path>
+                  <path class="dim" d="M17 46v4M55 46v4M58 13h4M58 43h4"></path>
+                </svg>
+              </div>
+              <div class="compact-field-stack">
+                <label class="compact-property-field">
+                  <span class="compact-property-label">x</span>
+                  <input
+                    id="viewX"
+                    type="number"
+                    value="0"
+                    aria-label="Viewbox x offset"
+                  />
+                  <span
+                    class="info-icon"
+                    data-tip="Viewbox x offset in SVG units. (Default: 0)"
+                    tabindex="0"
+                    >i</span
+                  >
+                </label>
+                <label class="compact-property-field">
+                  <span class="compact-property-label">y</span>
+                  <input
+                    id="viewY"
+                    type="number"
+                    value="0"
+                    aria-label="Viewbox y offset"
+                  />
+                  <span
+                    class="info-icon"
+                    data-tip="Viewbox y offset in SVG units. (Default: 0)"
+                    tabindex="0"
+                    >i</span
+                  >
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="section">
             <h2>Appearance</h2>
-            <label class="appearance-row">
-              <input type="checkbox" id="showGridToggle" checked />
-              <span>Show grid</span>
-            </label>
-            <label class="appearance-row">
-              <input type="checkbox" id="snapToGridToggle" />
-              <span>Snap to grid</span>
-            </label>
-            <div class="attr-row">
+            <div class="field-row">
               <span class="attr-label">Background</span>
               <input
                 type="color"
@@ -1768,6 +1806,14 @@
                 class="color-swatch"
               />
             </div>
+            <label class="field-row">
+              <input type="checkbox" id="showGridToggle" checked />
+              <span>Show grid</span>
+            </label>
+            <label class="field-row">
+              <input type="checkbox" id="snapToGridToggle" />
+              <span>Snap to grid</span>
+            </label>
           </div>
           <div class="section">
             <h2>Shortcuts</h2>
@@ -1934,6 +1980,8 @@
           attributeEditor: document.getElementById("attributeEditor"),
           duplicateBtn: document.getElementById("duplicateBtn"),
           deleteElementBtn: document.getElementById("deleteElementBtn"),
+          viewX: document.getElementById("viewX"),
+          viewY: document.getElementById("viewY"),
           viewWidth: document.getElementById("viewWidth"),
           viewHeight: document.getElementById("viewHeight"),
           sampleBtn: document.getElementById("sampleBtn"),
@@ -2238,6 +2286,8 @@
           els.artboardGrid.setAttribute("width", width);
           els.artboardGrid.setAttribute("height", height);
           els.viewBoxLabel.textContent = state.viewBox.map(fmt).join(" ");
+          els.viewX.value = round(x);
+          els.viewY.value = round(y);
           els.viewWidth.value = round(width);
           els.viewHeight.value = round(height);
         }
@@ -4514,7 +4564,7 @@
             return;
           }
           // Translate all elements to compensate for the new viewBox origin
-          children.forEach(el => translateElement(el, -minX, -minY));
+          children.forEach((el) => translateElement(el, -minX, -minY));
           setViewBox([0, 0, maxX - minX, maxY - minY]);
           refreshMarkup();
           toast("Canvas trimmed", "good");
@@ -4551,7 +4601,9 @@
           const h = Math.abs(end.y - start.y);
           if (w < 4 || h < 4) return;
           // Translate all elements to compensate for the new viewBox origin
-          Array.from(els.artLayer.children).forEach(el => translateElement(el, -x, -y));
+          Array.from(els.artLayer.children).forEach((el) =>
+            translateElement(el, -x, -y),
+          );
           setViewBox([0, 0, w, h]);
           refreshMarkup();
           toast("Canvas cropped", "good");
@@ -5062,18 +5114,24 @@
           });
 
           const syncCanvasSize = () => {
+            const x = Number(els.viewX.value);
+            const y = Number(els.viewY.value);
             const width = Number(els.viewWidth.value);
             const height = Number(els.viewHeight.value);
             if (
+              !Number.isFinite(x) ||
+              !Number.isFinite(y) ||
               !Number.isFinite(width) ||
               !Number.isFinite(height) ||
               width < 1 ||
               height < 1
             )
               return;
-            setViewBox([state.viewBox[0], state.viewBox[1], width, height]);
+            setViewBox([x, y, width, height]);
             refreshMarkup();
           };
+          els.viewX.addEventListener("input", syncCanvasSize);
+          els.viewY.addEventListener("input", syncCanvasSize);
           els.viewWidth.addEventListener("input", syncCanvasSize);
           els.viewHeight.addEventListener("input", syncCanvasSize);
           els.pathData.addEventListener("input", syncPathDataFromInput);
