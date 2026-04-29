@@ -3507,19 +3507,23 @@
           }
         }
 
+        function applyMarkupFromInput() {
+          clearTimeout(state.markupTimer);
+          try {
+            state.suppressMarkupRefresh = true;
+            importMarkup(els.markup.value);
+          } catch (error) {
+            return false;
+          } finally {
+            state.suppressMarkupRefresh = false;
+          }
+          scheduleHistoryCommit();
+          return true;
+        }
+
         function syncMarkupFromInput() {
           clearTimeout(state.markupTimer);
-          state.markupTimer = setTimeout(() => {
-            try {
-              state.suppressMarkupRefresh = true;
-              importMarkup(els.markup.value);
-            } catch (error) {
-              return;
-            } finally {
-              state.suppressMarkupRefresh = false;
-            }
-            scheduleHistoryCommit();
-          }, 300);
+          state.markupTimer = setTimeout(applyMarkupFromInput, 300);
         }
 
         function scheduleHistoryCommit() {
@@ -5281,7 +5285,10 @@
           });
 
           els.markup.addEventListener("input", syncMarkupFromInput);
-          els.markup.addEventListener("blur", () => refreshMarkup(true));
+          els.markup.addEventListener("blur", () => {
+            applyMarkupFromInput();
+            refreshMarkup(true);
+          });
 
           els.fileNameInput.addEventListener("input", () => {
             const raw = els.fileNameInput.value.trim();
