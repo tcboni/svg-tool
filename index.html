@@ -4271,22 +4271,8 @@
         }
 
         function parsePath(d) {
-          const tokens =
-            d.match(/[a-zA-Z]|[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi) || [];
-          const lengths = {
-            M: 2,
-            L: 2,
-            H: 1,
-            V: 1,
-            C: 6,
-            S: 4,
-            Q: 4,
-            T: 2,
-            A: 7,
-            Z: 0,
-          };
           const segments = [];
-          let i = 0;
+          let index = 0;
           let cmd = "";
           let x = 0;
           let y = 0;
@@ -4295,18 +4281,54 @@
           let prevC = null;
           let prevQ = null;
 
-          const isCommand = (token) => /^[a-zA-Z]$/.test(token);
-          const read = () => Number(tokens[i++]);
+          const isCommandChar = (char) => /[a-zA-Z]/.test(char);
+          const isNumberStart = (char) => /[-+.\d]/.test(char || "");
+          const skipSeparators = () => {
+            while (index < d.length && /[\s,]/.test(d[index])) index += 1;
+          };
+          const hasReadableNumber = () => {
+            skipSeparators();
+            return isNumberStart(d[index]);
+          };
+          const readNumber = () => {
+            skipSeparators();
+            const match = d
+              .slice(index)
+              .match(
+                /^[-+]?(?:(?:\d+\.\d*)|(?:\.\d+)|(?:\d+))(?:[eE][-+]?\d+)?/,
+              );
+            if (!match) return null;
+            index += match[0].length;
+            return Number(match[0]);
+          };
+          const readArcFlag = () => {
+            skipSeparators();
+            const flag = d[index];
+            if (flag !== "0" && flag !== "1") return null;
+            index += 1;
+            return Number(flag);
+          };
 
-          while (i < tokens.length) {
-            if (isCommand(tokens[i])) cmd = tokens[i++];
-            if (!cmd) break;
+          while (index < d.length) {
+            skipSeparators();
+            const current = d[index];
+            if (!current) break;
+
+            if (isCommandChar(current)) {
+              cmd = current;
+              index += 1;
+            } else if (!cmd) {
+              index += 1;
+              continue;
+            } else if (!isNumberStart(current)) {
+              cmd = "";
+              index += 1;
+              continue;
+            }
 
             const upper = cmd.toUpperCase();
             const relative = cmd !== upper;
-            const length = lengths[upper];
-            if (length == null) break;
-            let firstMoveForCommand = upper === "M";
+
             if (upper === "Z") {
               segments.push({ cmd: "Z", values: [] });
               x = startX;
@@ -4317,20 +4339,23 @@
               continue;
             }
 
-            while (i < tokens.length && !isCommand(tokens[i])) {
-              if (i + length > tokens.length) {
-                i = tokens.length;
-                break;
-              }
+            let firstMoveForCommand = upper === "M";
+            while (hasReadableNumber()) {
+              const readStart = index;
+
               if (upper === "M") {
-                let nx = read();
-                let ny = read();
+                let nx = readNumber();
+                let ny = readNumber();
+                if (nx == null || ny == null) {
+                  index = readStart;
+                  break;
+                }
                 if (relative) {
                   nx += x;
                   ny += y;
                 }
-                const command = firstMoveForCommand ? "M" : "L";
-                segments.push({ cmd: command, values: [nx, ny] });
+                const nextCommand = firstMoveForCommand ? "M" : "L";
+                segments.push({ cmd: nextCommand, values: [nx, ny] });
                 if (firstMoveForCommand) {
                   startX = nx;
                   startY = ny;
@@ -4338,10 +4363,16 @@
                 }
                 x = nx;
                 y = ny;
+                prevC = null;
+                prevQ = null;
                 cmd = relative ? "l" : "L";
               } else if (upper === "L") {
-                let nx = read();
-                let ny = read();
+                let nx = readNumber();
+                let ny = readNumber();
+                if (nx == null || ny == null) {
+                  index = readStart;
+                  break;
+                }
                 if (relative) {
                   nx += x;
                   ny += y;
@@ -4349,18 +4380,43 @@
                 segments.push({ cmd: "L", values: [nx, ny] });
                 x = nx;
                 y = ny;
+                prevC = null;
+                prevQ = null;
               } else if (upper === "H") {
-                let nx = read();
+                let nx = readNumber();
+                if (nx == null) {
+                  index = readStart;
+                  break;
+                }
                 if (relative) nx += x;
                 segments.push({ cmd: "L", values: [nx, y] });
                 x = nx;
+                prevC = null;
+                prevQ = null;
               } else if (upper === "V") {
-                let ny = read();
+                let ny = readNumber();
+                if (ny == null) {
+                  index = readStart;
+                  break;
+                }
                 if (relative) ny += y;
                 segments.push({ cmd: "L", values: [x, ny] });
                 y = ny;
+                prevC = null;
+                prevQ = null;
               } else if (upper === "C") {
-                const values = [read(), read(), read(), read(), read(), read()];
+                const values = [
+                  readNumber(),
+                  readNumber(),
+                  readNumber(),
+                  readNumber(),
+                  readNumber(),
+                  readNumber(),
+                ];
+                if (values.some((value) => value == null)) {
+                  index = readStart;
+                  break;
+                }
                 if (relative) {
                   values[0] += x;
                   values[1] += y;
@@ -4375,7 +4431,16 @@
                 prevC = { x: values[2], y: values[3] };
                 prevQ = null;
               } else if (upper === "S") {
-                const values = [read(), read(), read(), read()];
+                const values = [
+                  readNumber(),
+                  readNumber(),
+                  readNumber(),
+                  readNumber(),
+                ];
+                if (values.some((value) => value == null)) {
+                  index = readStart;
+                  break;
+                }
                 if (relative) {
                   values[0] += x;
                   values[1] += y;
@@ -4399,7 +4464,16 @@
                 prevC = { x: values[0], y: values[1] };
                 prevQ = null;
               } else if (upper === "Q") {
-                const values = [read(), read(), read(), read()];
+                const values = [
+                  readNumber(),
+                  readNumber(),
+                  readNumber(),
+                  readNumber(),
+                ];
+                if (values.some((value) => value == null)) {
+                  index = readStart;
+                  break;
+                }
                 if (relative) {
                   values[0] += x;
                   values[1] += y;
@@ -4412,7 +4486,11 @@
                 prevQ = { x: values[0], y: values[1] };
                 prevC = null;
               } else if (upper === "T") {
-                const values = [read(), read()];
+                const values = [readNumber(), readNumber()];
+                if (values.some((value) => value == null)) {
+                  index = readStart;
+                  break;
+                }
                 if (relative) {
                   values[0] += x;
                   values[1] += y;
@@ -4429,14 +4507,33 @@
                 prevQ = q;
                 prevC = null;
               } else if (upper === "A") {
+                const rx = readNumber();
+                const ry = readNumber();
+                const rotation = readNumber();
+                const largeArcFlag = readArcFlag();
+                const sweepFlag = readArcFlag();
+                const arcX = readNumber();
+                const arcY = readNumber();
+                if (
+                  rx == null ||
+                  ry == null ||
+                  rotation == null ||
+                  largeArcFlag == null ||
+                  sweepFlag == null ||
+                  arcX == null ||
+                  arcY == null
+                ) {
+                  index = readStart;
+                  break;
+                }
                 const values = [
-                  read(),
-                  read(),
-                  read(),
-                  read(),
-                  read(),
-                  read(),
-                  read(),
+                  rx,
+                  ry,
+                  rotation,
+                  largeArcFlag,
+                  sweepFlag,
+                  arcX,
+                  arcY,
                 ];
                 if (relative) {
                   values[5] += x;
@@ -4448,15 +4545,14 @@
                 prevC = null;
                 prevQ = null;
               } else {
-                i += length;
+                break;
               }
 
-              if (upper !== "C" && upper !== "S")
-                prevC = upper === "C" || upper === "S" ? prevC : null;
-              if (upper !== "Q" && upper !== "T")
-                prevQ = upper === "Q" || upper === "T" ? prevQ : null;
+              skipSeparators();
+              if (isCommandChar(d[index])) break;
             }
           }
+
           return segments;
         }
 
