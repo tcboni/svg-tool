@@ -4022,16 +4022,28 @@
           state.drag = {
             type: "move-node",
             handle,
+            startClientX: event.clientX,
+            startClientY: event.clientY,
+            hasMoved: false,
           };
-          els.canvas.classList.add("grabbing");
-          document.body.classList.add("dragging-canvas");
+          renderOverlay();
           renderPathPanel();
         }
 
-        function moveNode(point) {
+        function moveNode(point, event) {
           const pt = snapPoint(point);
           const drag = state.drag;
           if (!drag || drag.type !== "move-node") return;
+          if (!drag.hasMoved) {
+            const distance = Math.hypot(
+              event.clientX - drag.startClientX,
+              event.clientY - drag.startClientY,
+            );
+            if (distance <= ELEMENT_DRAG_SAFE_ZONE_PX) return;
+            drag.hasMoved = true;
+            els.canvas.classList.add("grabbing");
+            document.body.classList.add("dragging-canvas");
+          }
           const segment = state.parsedPath[drag.handle.segmentIndex];
           if (drag.handle.kind === "arc-radius") {
             const endX = segment.values[5];
@@ -5091,7 +5103,7 @@
           const point = pointFromEvent(event);
           if (state.drag?.type === "move-element")
             moveSelectedElement(point, event);
-          if (state.drag?.type === "move-node") moveNode(point);
+          if (state.drag?.type === "move-node") moveNode(point, event);
           if (state.drag?.type === "draw-shape") updateShapeDrag(point);
           if (state.drag?.type === "pan") moveViewport(event);
           if (state.drag?.type === "resize") updateResize(point);
