@@ -1398,11 +1398,27 @@
         <button
           class="tool active"
           data-tool="select"
-          data-tip="Select / Move (V)"
-          aria-label="Select / Move"
+          data-tip="Select (V)"
+          aria-label="Select"
           type="button"
         >
           <svg viewBox="0 0 24 24"><path d="M4 3l8 18 2-8 7-3z"></path></svg>
+        </button>
+        <button
+          class="tool"
+          data-tool="move"
+          data-tip="Move canvas (H or hold Space)"
+          aria-label="Move canvas"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M9 11V5a1.5 1.5 0 0 1 3 0v4"></path>
+            <path d="M12 9V4.5a1.5 1.5 0 0 1 3 0V10"></path>
+            <path d="M15 10V6.5a1.5 1.5 0 0 1 3 0V14"></path>
+            <path
+              d="M6.5 12.5l2.8 2.8V11a1.5 1.5 0 0 1 3 0v4.2l1.1 1.1c.8.8 1.3 1.9 1.3 3.1V21H9.8c-1 0-2-.4-2.7-1.1l-2.6-2.6a1.6 1.6 0 0 1 2-2.5z"
+            ></path>
+          </svg>
         </button>
         <button
           class="tool"
@@ -1590,9 +1606,7 @@
 
       <main class="stage-wrap">
         <div class="stage-head">
-          <div class="pill">
-            Tool: <strong id="toolName">Select / Move</strong>
-          </div>
+          <div class="pill">Tool: <strong id="toolName">Select</strong></div>
           <div class="pill">
             ViewBox: <strong id="viewBoxLabel">0 0 800 600</strong>
           </div>
@@ -1741,6 +1755,13 @@
           <div class="section" id="pointsListSection" hidden>
             <h2>Points</h2>
             <div id="pointsList" class="segments"></div>
+          </div>
+          <div class="section" id="groupSummarySection" hidden>
+            <h2>Group Inspector</h2>
+            <div id="groupSummary" class="empty">
+              Select a group to inspect hierarchy, composition, geometry, and
+              attributes.
+            </div>
           </div>
           <div class="section" id="propertiesSection" hidden>
             <h2>Properties</h2>
@@ -1903,7 +1924,7 @@
             <h2>Shortcuts</h2>
             <p class="empty">
               <span class="kbd">V</span> select,
-              <span class="kbd">P</span> path,
+              <span class="kbd">H</span> move, <span class="kbd">P</span> path,
               <span class="kbd">R</span> rectangle,
               <span class="kbd">C</span> circle,
               <span class="kbd">O</span> ellipse,
@@ -1911,6 +1932,7 @@
               <span class="kbd">G</span> polygon,
               <span class="kbd">Y</span> polyline,
               <span class="kbd">T</span> text, <span class="kbd">I</span> image,
+              hold <span class="kbd">Space</span> to move canvas,
               <span class="kbd">Del</span> delete selected element,
               <span class="kbd">Esc</span> finish drawing.
             </p>
@@ -1982,6 +2004,12 @@
       <button class="context-item" data-action="delete">
         Delete <span class="context-kbd">Del</span>
       </button>
+      <button class="context-item" data-action="group">
+        Group <span class="context-kbd">⌘G</span>
+      </button>
+      <button class="context-item" data-action="ungroup">
+        Ungroup <span class="context-kbd">⌘⇧G</span>
+      </button>
       <div class="context-sep"></div>
       <button class="context-item" data-action="bring-front">
         Bring to Front
@@ -2010,6 +2038,7 @@
           tool: "select",
           viewBox: [0, 0, 800, 600],
           selected: null,
+          selectedSet: [],
           selectedNode: null,
           drag: null,
           drawing: null,
@@ -2023,8 +2052,9 @@
           historyReady: false,
           isRestoring: false,
           snapToGrid: false,
-          clipboard: null,
+          clipboard: [],
           editingText: null,
+          spaceMoveActive: false,
         };
 
         const els = {
@@ -2090,6 +2120,8 @@
           pointsSummary: document.getElementById("pointsSummary"),
           pointsData: document.getElementById("pointsData"),
           pointsList: document.getElementById("pointsList"),
+          groupSummarySection: document.getElementById("groupSummarySection"),
+          groupSummary: document.getElementById("groupSummary"),
           markup: document.getElementById("markup"),
           copyMarkupBtn: document.getElementById("copyMarkupBtn"),
           exportSvgBtn: document.getElementById("exportSvgBtn"),
@@ -2104,7 +2136,8 @@
         };
 
         const toolLabels = {
-          select: "Select / Move",
+          select: "Select",
+          move: "Move",
           pen: "Path",
           rect: "Rectangle",
           circle: "Circle",
@@ -2125,9 +2158,11 @@
           text: ["x", "y"],
           image: ["href", "x", "y", "width", "height", "preserveAspectRatio"],
           use: ["href", "x", "y", "width", "height"],
+          g: [],
         };
 
-        const universalAttrs = ["id", "class", "style", "opacity"];
+        const universalAttrs = ["id", "class", "style", "opacity", "transform"];
+
         const strokeAttrs = [
           "stroke",
           "stroke-width",
@@ -2156,6 +2191,7 @@
           "polyline",
           "polygon",
           "text",
+          "g",
         ]);
         const fillTags = new Set([
           "path",
@@ -2165,6 +2201,7 @@
           "polyline",
           "polygon",
           "text",
+          "g",
         ]);
 
         const attributeDescriptions = {
@@ -2187,6 +2224,16 @@
           opacity: "Overall element transparency from 0 to 1.",
           transform:
             "Element transform such as translate, rotate, scale, or matrix.",
+          display:
+            "Rendering state for the element (for example inline or none).",
+          visibility: "Visibility state (visible, hidden, or collapse).",
+          "pointer-events":
+            "How this element responds to pointer events such as clicks and drags.",
+          "clip-path":
+            "Clip path reference that restricts the visible painted region.",
+          mask: "Mask reference used to control element transparency.",
+          filter:
+            "Filter reference that applies effects like blur, shadow, or color shifts.",
           x: "Horizontal position of the element.",
           y: "Vertical position of the element.",
           width: "Element width in SVG units.",
@@ -2322,6 +2369,19 @@
           };
         }
 
+        function isMoveActive() {
+          return state.tool === "move" || state.spaceMoveActive;
+        }
+
+        function updateCanvasModeClasses() {
+          els.canvas.classList.toggle("select-mode", state.tool === "select");
+          els.canvas.classList.toggle("pan-mode", isMoveActive());
+          els.canvas.classList.toggle("crop-mode", state.tool === "crop");
+          els.toolName.textContent = isMoveActive()
+            ? toolLabels.move
+            : toolLabels[state.tool] || state.tool;
+        }
+
         function setTool(tool) {
           if (tool === "trim") {
             trimCanvas();
@@ -2341,9 +2401,7 @@
           document.querySelectorAll(".tool").forEach((button) => {
             button.classList.toggle("active", button.dataset.tool === tool);
           });
-          els.toolName.textContent = toolLabels[tool] || tool;
-          els.canvas.classList.toggle("select-mode", tool === "select");
-          els.canvas.classList.toggle("crop-mode", tool === "crop");
+          updateCanvasModeClasses();
           renderOverlay();
         }
 
@@ -2451,11 +2509,44 @@
           renderOverlay();
         }
 
-        function selectElement(el) {
-          if (state.editingText && state.editingText !== el) commitTextEdit();
-          state.selected = el && els.artLayer.contains(el) ? el : null;
+        function topLevelElements() {
+          return Array.from(els.artLayer.children);
+        }
+
+        function normalizeSelection(elements) {
+          const topLevel = new Set(topLevelElements());
+          const seen = new Set();
+          return (elements || []).filter((el) => {
+            if (!el || !topLevel.has(el) || seen.has(el)) return false;
+            seen.add(el);
+            return true;
+          });
+        }
+
+        function getSelectedElements() {
+          if (!state.selectedSet.length) return [];
+          const indexByEl = new Map(topLevelElements().map((el, i) => [el, i]));
+          return [...state.selectedSet].sort(
+            (a, b) => (indexByEl.get(a) ?? 0) - (indexByEl.get(b) ?? 0),
+          );
+        }
+
+        function isSelectedElement(el) {
+          return state.selectedSet.includes(el);
+        }
+
+        function setSelection(elements, primary = null) {
+          const normalized = normalizeSelection(elements);
+          if (state.editingText && !normalized.includes(state.editingText))
+            commitTextEdit();
+          state.selectedSet = normalized;
+          state.selected =
+            (primary && normalized.includes(primary) && primary) ||
+            normalized[normalized.length - 1] ||
+            null;
           state.selectedNode = null;
           state.parsedPath =
+            normalized.length === 1 &&
             state.selected?.tagName.toLowerCase() === "path"
               ? parsePath(state.selected.getAttribute("d") || "")
               : [];
@@ -2464,12 +2555,53 @@
           refreshMarkup();
         }
 
+        function selectElement(el) {
+          setSelection(el ? [el] : [], el || null);
+        }
+
+        function toggleElementSelection(el) {
+          if (!el) return;
+          if (isSelectedElement(el)) {
+            setSelection(
+              state.selectedSet.filter((item) => item !== el),
+              state.selected === el ? null : state.selected,
+            );
+            return;
+          }
+          setSelection([...state.selectedSet, el], el);
+        }
+
+        function selectionBounds(elements = getSelectedElements()) {
+          if (!elements.length) return { x: 0, y: 0, width: 0, height: 0 };
+          let minX = Infinity;
+          let minY = Infinity;
+          let maxX = -Infinity;
+          let maxY = -Infinity;
+          elements.forEach((el) => {
+            const box = safeBBox(el);
+            minX = Math.min(minX, box.x);
+            minY = Math.min(minY, box.y);
+            maxX = Math.max(maxX, box.x + box.width);
+            maxY = Math.max(maxY, box.y + box.height);
+          });
+          if (!Number.isFinite(minX))
+            return { x: 0, y: 0, width: 0, height: 0 };
+          return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+        }
+
         function renderSelectionSummary() {
+          const selected = getSelectedElements();
           const el = state.selected;
-          if (!el) {
+          if (!selected.length) {
             els.selectionInfo.className = "empty";
             els.selectionInfo.innerHTML =
               "No element selected. Pick the Select tool and click any SVG element.";
+            return;
+          }
+          if (selected.length > 1) {
+            els.selectionInfo.className = "selectionInfo";
+            const box = selectionBounds(selected);
+            els.selectionInfo.innerHTML = `<strong>${selected.length}</strong> elements selected<br>Bounds: ${fmt(box.x)}, ${fmt(box.y)} · ${fmt(box.width)} × ${fmt(box.height)}`;
             return;
           }
           els.selectionInfo.className = "selectionInfo";
@@ -2479,17 +2611,30 @@
           els.selectionInfo.innerHTML = `<strong>&lt;${tag}&gt;</strong><br>ID: ${escapeHtml(id)}<br>Bounds: ${fmt(box.x)}, ${fmt(box.y)} · ${fmt(box.width)} × ${fmt(box.height)}`;
         }
 
+        function canGroupSelection() {
+          return getSelectedElements().length >= 2;
+        }
+
+        function canUngroupSelection() {
+          const selected = getSelectedElements();
+          return (
+            selected.length === 1 && selected[0].tagName.toLowerCase() === "g"
+          );
+        }
+
         function renderInspector() {
+          const selected = getSelectedElements();
           const el = state.selected;
           els.propertyEditor.innerHTML = "";
           els.strokeEditor.innerHTML = "";
           els.fillEditor.innerHTML = "";
           els.fontEditor.innerHTML = "";
           els.attributeEditor.innerHTML = "";
-          if (!el) {
-            renderSelectionSummary();
-            els.duplicateBtn.disabled = true;
-            els.deleteElementBtn.disabled = true;
+          renderSelectionSummary();
+          const hasSelection = selected.length > 0;
+          els.duplicateBtn.disabled = !hasSelection;
+          els.deleteElementBtn.disabled = !hasSelection;
+          if (!el || selected.length !== 1) {
             els.propertiesSection.hidden = true;
             els.textContentSection.hidden = true;
             els.strokeSection.hidden = true;
@@ -2497,14 +2642,12 @@
             els.fontSection.hidden = true;
             els.attributesSection.hidden = true;
             renderPathPanel();
+            renderPointsPanel();
+            renderGroupPanel();
             return;
           }
 
           const tag = el.tagName.toLowerCase();
-          renderSelectionSummary();
-          els.duplicateBtn.disabled = false;
-          els.deleteElementBtn.disabled = false;
-
           const properties = propertyMap[tag] || [];
           els.propertiesSection.hidden = properties.length === 0;
           if (properties.length) {
@@ -2547,8 +2690,10 @@
             el,
           );
 
+          renderOverlay();
           renderPathPanel();
           renderPointsPanel();
+          renderGroupPanel();
         }
 
         function renderAttributeSection(section, editor, attrs, el) {
@@ -2847,6 +2992,7 @@
           renderSelectionSummary();
           renderOverlay();
           renderPathPanel();
+          renderGroupPanel();
           refreshMarkup();
         }
 
@@ -2875,7 +3021,9 @@
 
         function renderPathPanel() {
           const el = state.selected;
-          const isPath = el?.tagName.toLowerCase() === "path";
+          const isPath =
+            getSelectedElements().length === 1 &&
+            el?.tagName.toLowerCase() === "path";
           [
             els.pathSummarySection,
             els.pathDataSection,
@@ -3027,7 +3175,9 @@
         function renderPointsPanel() {
           const el = state.selected;
           const tag = el?.tagName.toLowerCase();
-          const isPoly = tag === "polygon" || tag === "polyline";
+          const isPoly =
+            getSelectedElements().length === 1 &&
+            (tag === "polygon" || tag === "polyline");
           [
             els.pointsSummarySection,
             els.pointsDataSection,
@@ -3131,6 +3281,77 @@
           });
         }
 
+        function formatTagCounts(counts) {
+          if (!counts.size) return "(none)";
+          return [...counts.entries()]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .map(([tag, count]) => `${tag}:${count}`)
+            .join(" · ");
+        }
+
+        function collectGroupStats(group) {
+          const directChildren = Array.from(group.children);
+          const totalTagCounts = new Map();
+          const directTagCounts = new Map();
+          let leafCount = 0;
+          let nestedGroupCount = 0;
+          let maxDepth = 0;
+
+          const addCount = (map, tag) => {
+            map.set(tag, (map.get(tag) || 0) + 1);
+          };
+
+          const walk = (node, depth) => {
+            const tag = node.tagName.toLowerCase();
+            addCount(totalTagCounts, tag);
+            if (tag === "g") nestedGroupCount += 1;
+            maxDepth = Math.max(maxDepth, depth);
+            const children = Array.from(node.children);
+            if (!children.length) {
+              leafCount += 1;
+              return;
+            }
+            children.forEach((child) => walk(child, depth + 1));
+          };
+
+          directChildren.forEach((child) => {
+            addCount(directTagCounts, child.tagName.toLowerCase());
+            walk(child, 1);
+          });
+
+          const allAttributes = Array.from(group.attributes).map(
+            (attr) => attr.name,
+          );
+          const box = safeBBox(group);
+          return {
+            directChildrenCount: directChildren.length,
+            descendantsCount: group.querySelectorAll("*").length,
+            leafCount,
+            nestedGroupCount,
+            maxDepth,
+            directTagCounts,
+            totalTagCounts,
+            attributeNames: allAttributes,
+            box,
+          };
+        }
+
+        function renderGroupPanel() {
+          const el = state.selected;
+          const isGroup =
+            getSelectedElements().length === 1 &&
+            el?.tagName.toLowerCase() === "g";
+          els.groupSummarySection.hidden = !isGroup;
+          if (!isGroup) {
+            els.groupSummary.innerHTML =
+              "Select a group to inspect hierarchy, composition, geometry, and attributes.";
+            return;
+          }
+
+          const stats = collectGroupStats(el);
+          els.groupSummary.innerHTML = `<strong>${stats.directChildrenCount}</strong> direct children · <strong>${stats.descendantsCount}</strong> total descendants · <strong>${stats.maxDepth}</strong> max depth<br>Nested groups: ${stats.nestedGroupCount} · Leaf nodes: ${stats.leafCount}<br>Direct composition: ${escapeHtml(formatTagCounts(stats.directTagCounts))}<br>Total composition: ${escapeHtml(formatTagCounts(stats.totalTagCounts))}`;
+        }
+
         function syncPointsDataFromInput() {
           const el = state.selected;
           const tag = el?.tagName.toLowerCase();
@@ -3182,11 +3403,15 @@
         function renderOverlay() {
           els.overlayLayer.innerHTML = "";
           renderCropOverlay();
+          const selected = getSelectedElements();
           const el = state.selected;
-          if (!el) return;
+          if (!selected.length) {
+            renderMarqueeOverlay();
+            return;
+          }
           const overlayScale = overlayUnitsPerPixel();
-
-          const box = safeBBox(el);
+          const box =
+            selected.length > 1 ? selectionBounds(selected) : safeBBox(el);
           if (box.width || box.height) {
             els.overlayLayer.append(
               createSvgElement("rect", {
@@ -3198,74 +3423,90 @@
               }),
             );
 
-            const hsX = 5 * overlayScale.x;
-            const hsY = 5 * overlayScale.y;
-            const bx = box.x,
-              by = box.y,
-              bw = box.width,
-              bh = box.height;
-            [
-              { hx: "left", hy: "top", cx: bx, cy: by, cur: "nw-resize" },
-              {
-                hx: "center",
-                hy: "top",
-                cx: bx + bw / 2,
-                cy: by,
-                cur: "n-resize",
-              },
-              { hx: "right", hy: "top", cx: bx + bw, cy: by, cur: "ne-resize" },
-              {
-                hx: "left",
-                hy: "center",
-                cx: bx,
-                cy: by + bh / 2,
-                cur: "w-resize",
-              },
-              {
-                hx: "right",
-                hy: "center",
-                cx: bx + bw,
-                cy: by + bh / 2,
-                cur: "e-resize",
-              },
-              {
-                hx: "left",
-                hy: "bottom",
-                cx: bx,
-                cy: by + bh,
-                cur: "sw-resize",
-              },
-              {
-                hx: "center",
-                hy: "bottom",
-                cx: bx + bw / 2,
-                cy: by + bh,
-                cur: "s-resize",
-              },
-              {
-                hx: "right",
-                hy: "bottom",
-                cx: bx + bw,
-                cy: by + bh,
-                cur: "se-resize",
-              },
-            ].forEach(({ hx, hy, cx, cy, cur }) => {
-              els.overlayLayer.append(
-                createSvgElement("rect", {
-                  class: "resize-handle",
-                  x: fmt(cx - hsX),
-                  y: fmt(cy - hsY),
-                  width: fmt(hsX * 2),
-                  height: fmt(hsY * 2),
-                  "data-resize-hx": hx,
-                  "data-resize-hy": hy,
-                  style: `cursor:${cur}`,
-                }),
-              );
-            });
+            if (selected.length === 1) {
+              const hsX = 5 * overlayScale.x;
+              const hsY = 5 * overlayScale.y;
+              const bx = box.x,
+                by = box.y,
+                bw = box.width,
+                bh = box.height;
+              [
+                { hx: "left", hy: "top", cx: bx, cy: by, cur: "nw-resize" },
+                {
+                  hx: "center",
+                  hy: "top",
+                  cx: bx + bw / 2,
+                  cy: by,
+                  cur: "n-resize",
+                },
+                {
+                  hx: "right",
+                  hy: "top",
+                  cx: bx + bw,
+                  cy: by,
+                  cur: "ne-resize",
+                },
+                {
+                  hx: "left",
+                  hy: "center",
+                  cx: bx,
+                  cy: by + bh / 2,
+                  cur: "w-resize",
+                },
+                {
+                  hx: "right",
+                  hy: "center",
+                  cx: bx + bw,
+                  cy: by + bh / 2,
+                  cur: "e-resize",
+                },
+                {
+                  hx: "left",
+                  hy: "bottom",
+                  cx: bx,
+                  cy: by + bh,
+                  cur: "sw-resize",
+                },
+                {
+                  hx: "center",
+                  hy: "bottom",
+                  cx: bx + bw / 2,
+                  cy: by + bh,
+                  cur: "s-resize",
+                },
+                {
+                  hx: "right",
+                  hy: "bottom",
+                  cx: bx + bw,
+                  cy: by + bh,
+                  cur: "se-resize",
+                },
+              ].forEach(({ hx, hy, cx, cy, cur }) => {
+                els.overlayLayer.append(
+                  createSvgElement("rect", {
+                    class: "resize-handle",
+                    x: fmt(cx - hsX),
+                    y: fmt(cy - hsY),
+                    width: fmt(hsX * 2),
+                    height: fmt(hsY * 2),
+                    "data-resize-hx": hx,
+                    "data-resize-hy": hy,
+                    style: `cursor:${cur}`,
+                  }),
+                );
+              });
+            }
           }
 
-          if (el.tagName.toLowerCase() !== "path") return;
+          if (selected.length > 1) {
+            renderMarqueeOverlay();
+            return;
+          }
+
+          if (el.tagName.toLowerCase() !== "path") {
+            renderMarqueeOverlay();
+            return;
+          }
           state.parsedPath = parsePath(el.getAttribute("d") || "");
           const handles = pathHandles(state.parsedPath);
           const bySegment = new Map();
@@ -3316,6 +3557,7 @@
           });
 
           renderPathFloatingActions(handles, overlayScale, box);
+          renderMarqueeOverlay();
         }
 
         function renderPathFloatingActions(handles, overlayScale, box) {
@@ -3679,7 +3921,7 @@
               els.artLayer.appendChild(document.importNode(node, true));
             }
           });
-          selectElement(null);
+          setSelection([]);
           refreshMarkup();
         }
 
@@ -4139,10 +4381,13 @@
 
         function startElementDrag(event, el) {
           event.preventDefault();
+          if (!isSelectedElement(el)) {
+            setSelection([el], el);
+          }
           const point = snapPoint(pointFromEvent(event));
           state.drag = {
             type: "move-element",
-            el,
+            elements: getSelectedElements(),
             start: point,
             last: point,
             startClientX: event.clientX,
@@ -4176,7 +4421,9 @@
             if (distance <= ELEMENT_DRAG_SAFE_ZONE_PX) return;
             const totalDx = pt.x - drag.start.x;
             const totalDy = pt.y - drag.start.y;
-            translateElement(drag.el, totalDx, totalDy);
+            drag.elements.forEach((el) =>
+              translateElement(el, totalDx, totalDy),
+            );
             drag.last = pt;
             drag.hasMoved = true;
             els.canvas.classList.add("grabbing");
@@ -4186,7 +4433,7 @@
           }
           const dx = pt.x - drag.last.x;
           const dy = pt.y - drag.last.y;
-          translateElement(drag.el, dx, dy);
+          drag.elements.forEach((el) => translateElement(el, dx, dy));
           drag.last = pt;
           afterGeometryChange();
         }
@@ -4229,7 +4476,16 @@
             );
           };
 
-          if (tag === "rect" || tag === "image" || tag === "text") {
+          if (tag === "g") {
+            Array.from(el.children).forEach((child) =>
+              translateElement(child, dx, dy),
+            );
+          } else if (
+            tag === "rect" ||
+            tag === "image" ||
+            tag === "text" ||
+            tag === "use"
+          ) {
             add("x", dx);
             add("y", dy);
           } else if (tag === "circle" || tag === "ellipse") {
@@ -4988,21 +5244,26 @@
         }
 
         function deleteSelectedElement() {
-          if (!state.selected) return;
-          state.selected.remove();
-          selectElement(null);
+          const selected = getSelectedElements();
+          if (!selected.length) return;
+          selected.forEach((el) => el.remove());
+          setSelection([]);
           refreshMarkup();
           toast("Element deleted", "good");
         }
 
         function duplicateSelectedElement() {
-          if (!state.selected) return;
-          const clone = state.selected.cloneNode(true);
-          if (clone.hasAttribute("id"))
-            clone.setAttribute("id", `${clone.getAttribute("id")}-copy`);
-          translateElement(clone, 24, 24);
-          els.artLayer.append(clone);
-          selectElement(clone);
+          const selected = getSelectedElements();
+          if (!selected.length) return;
+          const clones = selected.map((el) => {
+            const clone = el.cloneNode(true);
+            if (clone.hasAttribute("id"))
+              clone.setAttribute("id", `${clone.getAttribute("id")}-copy`);
+            translateElement(clone, 24, 24);
+            els.artLayer.append(clone);
+            return clone;
+          });
+          setSelection(clones, clones.at(-1) || null);
           toast("Element duplicated", "good");
         }
 
@@ -5043,8 +5304,8 @@
           toast("Canvas trimmed", "good");
         }
 
-        function cropRectFromDrag(drag) {
-          if (!drag || drag.type !== "crop-draw") return null;
+        function rectFromDrag(drag, expectedType) {
+          if (!drag || drag.type !== expectedType) return null;
           const { start, end } = drag;
           return {
             x: Math.min(start.x, end.x),
@@ -5052,6 +5313,73 @@
             w: Math.abs(end.x - start.x),
             h: Math.abs(end.y - start.y),
           };
+        }
+
+        function cropRectFromDrag(drag) {
+          return rectFromDrag(drag, "crop-draw");
+        }
+
+        function marqueeRectFromDrag(drag) {
+          return rectFromDrag(drag, "marquee-select");
+        }
+
+        function renderMarqueeOverlay() {
+          document.getElementById("marqueeRectOverlay")?.remove();
+          const rect = marqueeRectFromDrag(state.drag);
+          if (!rect) return;
+          const { x, y, w, h } = rect;
+          if (w < 1 || h < 1) return;
+          els.overlayLayer.append(
+            createSvgElement("rect", {
+              id: "marqueeRectOverlay",
+              class: "selection-box",
+              x,
+              y,
+              width: w,
+              height: h,
+            }),
+          );
+        }
+
+        function intersectsRect(a, b) {
+          return (
+            a.x < b.x + b.w &&
+            a.x + a.width > b.x &&
+            a.y < b.y + b.h &&
+            a.y + a.height > b.y
+          );
+        }
+
+        function applyMarqueeSelection(drag = state.drag) {
+          const rect = marqueeRectFromDrag(drag);
+          if (!rect) return;
+          const additive = drag.mode === "add";
+          const toggle = drag.mode === "toggle";
+          const inside = topLevelElements().filter((el) =>
+            intersectsRect(safeBBox(el), rect),
+          );
+          if (rect.w < 3 && rect.h < 3) {
+            if (!additive && !toggle) setSelection([]);
+            return;
+          }
+          if (toggle) {
+            const next = [...drag.baseSelection];
+            inside.forEach((el) => {
+              const idx = next.indexOf(el);
+              if (idx >= 0) next.splice(idx, 1);
+              else next.push(el);
+            });
+            setSelection(next, inside.at(-1) || next.at(-1) || null);
+            return;
+          }
+          if (additive) {
+            setSelection(
+              [...drag.baseSelection, ...inside],
+              inside.at(-1) || state.selected,
+            );
+            return;
+          }
+          setSelection(inside, inside.at(-1) || null);
         }
 
         function renderCropOverlay() {
@@ -5295,7 +5623,15 @@
         }
 
         function showContextMenu(x, y) {
-          els.contextPasteItem.disabled = !state.clipboard;
+          els.contextPasteItem.disabled = !state.clipboard.length;
+          const groupItem = els.contextMenu.querySelector(
+            '[data-action="group"]',
+          );
+          const ungroupItem = els.contextMenu.querySelector(
+            '[data-action="ungroup"]',
+          );
+          if (groupItem) groupItem.disabled = !canGroupSelection();
+          if (ungroupItem) ungroupItem.disabled = !canUngroupSelection();
           els.contextMenu.style.left = `${x}px`;
           els.contextMenu.style.top = `${y}px`;
           els.contextMenu.hidden = false;
@@ -5311,34 +5647,67 @@
         }
 
         function cutElement() {
-          if (!state.selected) return;
-          state.clipboard = state.selected.cloneNode(true);
-          state.selected.remove();
-          selectElement(null);
+          const selected = getSelectedElements();
+          if (!selected.length) return;
+          state.clipboard = selected.map((el) => el.cloneNode(true));
+          selected.forEach((el) => el.remove());
+          setSelection([]);
           refreshMarkup();
           toast("Cut", "good");
         }
 
         function copyElement() {
-          if (!state.selected) return;
-          state.clipboard = state.selected.cloneNode(true);
+          const selected = getSelectedElements();
+          if (!selected.length) return;
+          state.clipboard = selected.map((el) => el.cloneNode(true));
           toast("Copied", "good");
         }
 
         function pasteElement() {
-          if (!state.clipboard) return;
-          const clone = state.clipboard.cloneNode(true);
-          if (clone.hasAttribute("id"))
-            clone.setAttribute("id", `${clone.getAttribute("id")}-copy`);
-          translateElement(clone, 24, 24);
-          els.artLayer.append(clone);
-          selectElement(clone);
+          if (!state.clipboard.length) return;
+          const clones = state.clipboard.map((entry) => {
+            const clone = entry.cloneNode(true);
+            if (clone.hasAttribute("id"))
+              clone.setAttribute("id", `${clone.getAttribute("id")}-copy`);
+            translateElement(clone, 24, 24);
+            els.artLayer.append(clone);
+            return clone;
+          });
+          setSelection(clones, clones.at(-1) || null);
           refreshMarkup();
           toast("Pasted", "good");
         }
 
+        function groupSelectedElements() {
+          const selected = getSelectedElements();
+          if (selected.length < 2) return;
+          const group = createSvgElement("g");
+          const first = selected[0];
+          els.artLayer.insertBefore(group, first);
+          selected.forEach((el) => group.appendChild(el));
+          setSelection([group], group);
+          refreshMarkup();
+          toast("Grouped", "good");
+        }
+
+        function ungroupSelectedElement() {
+          if (!canUngroupSelection()) return;
+          const group = state.selected;
+          const parent = group.parentNode;
+          const moved = [];
+          while (group.firstChild) {
+            const child = group.firstChild;
+            parent.insertBefore(child, group);
+            if (child.nodeType === Node.ELEMENT_NODE) moved.push(child);
+          }
+          group.remove();
+          setSelection(moved, moved.at(-1) || null);
+          refreshMarkup();
+          toast("Ungrouped", "good");
+        }
+
         function handleContextAction(action) {
-          const el = state.selected;
+          const selected = getSelectedElements();
           switch (action) {
             case "cut":
               cutElement();
@@ -5355,30 +5724,44 @@
             case "delete":
               deleteSelectedElement();
               break;
+            case "group":
+              groupSelectedElements();
+              break;
+            case "ungroup":
+              ungroupSelectedElement();
+              break;
             case "bring-front":
-              if (!el) return;
-              els.artLayer.append(el);
+              if (!selected.length) return;
+              selected.forEach((entry) => els.artLayer.append(entry));
               afterGeometryChange();
               toast("Brought to front", "good");
               break;
             case "send-back":
-              if (!el) return;
-              els.artLayer.insertBefore(el, els.artLayer.firstChild);
+              if (!selected.length) return;
+              [...selected]
+                .reverse()
+                .forEach((entry) =>
+                  els.artLayer.insertBefore(entry, els.artLayer.firstChild),
+                );
               afterGeometryChange();
               toast("Sent to back", "good");
               break;
             case "bring-forward": {
-              if (!el) return;
-              const next = el.nextElementSibling;
-              if (next) next.after(el);
+              if (!selected.length) return;
+              [...selected].reverse().forEach((entry) => {
+                const next = entry.nextElementSibling;
+                if (next && !selected.includes(next)) next.after(entry);
+              });
               afterGeometryChange();
               toast("Moved forward", "good");
               break;
             }
             case "send-backward": {
-              if (!el) return;
-              const prev = el.previousElementSibling;
-              if (prev) prev.before(el);
+              if (!selected.length) return;
+              selected.forEach((entry) => {
+                const prev = entry.previousElementSibling;
+                if (prev && !selected.includes(prev)) prev.before(entry);
+              });
               afterGeometryChange();
               toast("Moved backward", "good");
               break;
@@ -5393,7 +5776,7 @@
             if (state.tool !== "select") finishDrawing();
             return;
           }
-          if (event.button === 1 || event.altKey) {
+          if (event.button === 1 || event.altKey || isMoveActive()) {
             startPan(event);
             return;
           }
@@ -5432,30 +5815,41 @@
 
           const point = pointFromEvent(event);
           const artTarget = event.target.closest?.("#artLayer > *");
+          const toggleSelection = event.metaKey || event.ctrlKey;
+          const additiveSelection = event.shiftKey;
 
           if (state.tool === "crop") {
             state.drag = { type: "crop-draw", start: point, end: point };
             return;
           } else if (state.tool === "select") {
             if (artTarget) {
-              selectElement(artTarget);
-              startElementDrag(event, artTarget);
-            } else if (state.selected) {
-              const box = safeBBox(state.selected);
-              if (
-                point.x >= box.x &&
-                point.x <= box.x + box.width &&
-                point.y >= box.y &&
-                point.y <= box.y + box.height
-              ) {
-                startElementDrag(event, state.selected);
-              } else {
-                selectElement(null);
-                startPan(event);
+              if (toggleSelection) {
+                toggleElementSelection(artTarget);
+                return;
               }
+              if (additiveSelection) {
+                if (!isSelectedElement(artTarget)) {
+                  setSelection([...state.selectedSet, artTarget], artTarget);
+                }
+                return;
+              }
+              if (!isSelectedElement(artTarget)) selectElement(artTarget);
+              startElementDrag(event, state.selected);
             } else {
-              selectElement(null);
-              startPan(event);
+              const mode = toggleSelection
+                ? "toggle"
+                : additiveSelection
+                  ? "add"
+                  : "replace";
+              if (mode === "replace") setSelection([]);
+              state.drag = {
+                type: "marquee-select",
+                start: point,
+                end: point,
+                baseSelection: getSelectedElements(),
+                mode,
+              };
+              renderOverlay();
             }
           } else if (state.tool === "pen") {
             beginPen(snapPoint(point));
@@ -5474,6 +5868,10 @@
           if (state.drag?.type === "draw-shape") updateShapeDrag(point);
           if (state.drag?.type === "pan") moveViewport(event);
           if (state.drag?.type === "resize") updateResize(point, event);
+          if (state.drag?.type === "marquee-select") {
+            state.drag.end = point;
+            renderOverlay();
+          }
           if (state.drag?.type === "crop-draw") {
             state.drag.end = point;
             renderCropOverlay();
@@ -5491,7 +5889,12 @@
             applyCrop(rect);
             setTool("select");
           }
+          if (state.drag?.type === "marquee-select") {
+            applyMarqueeSelection(state.drag);
+          }
+          if (state.drag?.type === "pan") renderOverlay();
           state.drag = null;
+          renderOverlay();
           els.canvas.classList.remove("grabbing");
           document.body.classList.remove("dragging-canvas");
         }
@@ -5509,13 +5912,13 @@
           els.canvas.addEventListener("pointerdown", handleCanvasPointerDown);
           els.canvas.addEventListener("contextmenu", (event) => {
             event.preventDefault();
-            if (state.tool !== "select") {
+            if (state.tool !== "select" && !isMoveActive()) {
               finishDrawing();
               return;
             }
             const artTarget = event.target.closest?.("#artLayer > *");
             if (artTarget) {
-              selectElement(artTarget);
+              if (!isSelectedElement(artTarget)) selectElement(artTarget);
               showContextMenu(event.clientX, event.clientY);
             }
           });
@@ -5750,6 +6153,14 @@
               redo();
               return;
             }
+            if (event.key === " " && !isEditableTarget) {
+              event.preventDefault();
+              if (!state.spaceMoveActive) {
+                state.spaceMoveActive = true;
+                updateCanvasModeClasses();
+              }
+              return;
+            }
             if (isEditableTarget) return;
             const nudgeDelta = {
               ArrowLeft: { x: -1, y: 0 },
@@ -5757,13 +6168,11 @@
               ArrowUp: { x: 0, y: -1 },
               ArrowDown: { x: 0, y: 1 },
             }[event.key];
-            if (nudgeDelta && state.selected && !state.drag) {
+            if (nudgeDelta && getSelectedElements().length && !state.drag) {
               event.preventDefault();
               const step = event.shiftKey ? NUDGE_FAST_STEP_PX : NUDGE_STEP_PX;
-              translateElement(
-                state.selected,
-                nudgeDelta.x * step,
-                nudgeDelta.y * step,
+              getSelectedElements().forEach((el) =>
+                translateElement(el, nudgeDelta.x * step, nudgeDelta.y * step),
               );
               afterGeometryChange();
               return;
@@ -5789,7 +6198,14 @@
               pasteElement();
               return;
             }
+            if (mod && key === "g") {
+              event.preventDefault();
+              if (event.shiftKey) ungroupSelectedElement();
+              else groupSelectedElements();
+              return;
+            }
             if (key === "v") setTool("select");
+            if (key === "h") setTool("move");
             if (key === "p") setTool("pen");
             if (key === "r") setTool("rect");
             if (key === "c") setTool("circle");
@@ -5805,12 +6221,20 @@
               else deleteSelectedElement();
             }
           });
+          document.addEventListener("keyup", (event) => {
+            if (event.key === " ") {
+              if (!state.spaceMoveActive) return;
+              state.spaceMoveActive = false;
+              updateCanvasModeClasses();
+            }
+          });
         }
 
         function init() {
           setViewBox(state.viewBox);
           attachEvents();
           setTool("select");
+          updateCanvasModeClasses();
           loadFromStorage();
           renderInspector();
           refreshMarkup();
