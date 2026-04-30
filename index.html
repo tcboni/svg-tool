@@ -63,6 +63,29 @@
         opacity: 0.45;
       }
 
+      /* Prevent accidental text selection on UI chrome controls. */
+      .topbar,
+      .rail,
+      .stage-head,
+      .tabs,
+      .tab,
+      .zoom-controls,
+      .zoom-btn,
+      .zoom-level,
+      .pill,
+      .toast,
+      .path-toolbar,
+      .path-toolbar *,
+      .compact-property-label,
+      .attr-label,
+      .field-row,
+      .section h2,
+      .selectionInfo,
+      .empty {
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
       [hidden] {
         display: none !important;
       }
@@ -1918,12 +1941,8 @@
           </div>
           <div class="section">
             <h2>Export</h2>
-            <div class="field" style="margin-bottom: 10px">
-              <label
-                for="fileNameInput"
-                style="display: block; margin-bottom: 5px"
-                >File name</label
-              >
+            <div class="field">
+              <label for="fileNameInput" class="attr-label">File name</label>
               <input
                 type="text"
                 id="fileNameInput"
