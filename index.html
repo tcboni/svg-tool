@@ -4873,6 +4873,8 @@
 
         function parsePath(d) {
           const segments = [];
+          if (typeof d !== "string" || !d.trim()) return segments;
+
           let index = 0;
           let cmd = "";
           let x = 0;
@@ -4882,22 +4884,22 @@
           let prevC = null;
           let prevQ = null;
 
-          const isCommandChar = (char) => /[a-zA-Z]/.test(char);
+          // SVG path grammar: M/m, L/l, H/h, V/v, C/c, S/s, Q/q, T/t, A/a, Z/z
+          const PATH_COMMANDS = new Set("MmLlHhVvCcSsQqTtAaZz".split(""));
+          const NUMBER_RE =
+            /^[-+]?(?:(?:\d+\.\d*)|(?:\.\d+)|(?:\d+))(?:[eE][-+]?\d+)?/;
+          const isPathCommand = (char) => PATH_COMMANDS.has(char);
           const isNumberStart = (char) => /[-+.\d]/.test(char || "");
           const skipSeparators = () => {
             while (index < d.length && /[\s,]/.test(d[index])) index += 1;
           };
           const hasReadableNumber = () => {
             skipSeparators();
-            return isNumberStart(d[index]);
+            return NUMBER_RE.test(d.slice(index));
           };
           const readNumber = () => {
             skipSeparators();
-            const match = d
-              .slice(index)
-              .match(
-                /^[-+]?(?:(?:\d+\.\d*)|(?:\.\d+)|(?:\d+))(?:[eE][-+]?\d+)?/,
-              );
+            const match = d.slice(index).match(NUMBER_RE);
             if (!match) return null;
             index += match[0].length;
             return Number(match[0]);
@@ -4911,17 +4913,20 @@
           };
 
           while (index < d.length) {
+            const loopStart = index;
             skipSeparators();
             const current = d[index];
             if (!current) break;
 
-            if (isCommandChar(current)) {
+            if (isPathCommand(current)) {
               cmd = current;
               index += 1;
             } else if (!cmd) {
+              // Ignore any non-path input (such as pasted `<svg ...>` markup).
               index += 1;
               continue;
-            } else if (!isNumberStart(current)) {
+            } else if (!isNumberStart(current) || !hasReadableNumber()) {
+              // Current command no longer has valid numeric arguments.
               cmd = "";
               index += 1;
               continue;
@@ -5146,11 +5151,18 @@
                 prevC = null;
                 prevQ = null;
               } else {
+                // Should be unreachable due to PATH_COMMANDS, but preserve safety.
                 break;
               }
 
               skipSeparators();
-              if (isCommandChar(d[index])) break;
+              if (isPathCommand(d[index])) break;
+            }
+
+            // Hard progress guard: never allow an outer loop to repeat at same index.
+            if (index === loopStart) {
+              cmd = "";
+              index += 1;
             }
           }
 
