@@ -1979,6 +1979,7 @@
         const NUDGE_FAST_STEP_PX = 10;
         const ARC_MIN_RADIUS = 1;
         const LOCALSTORAGE_KEY = "svgtool-state";
+        const VIEWPORT_CLAMP_MARGIN = 50;
 
         const state = {
           tool: "select",
@@ -2742,7 +2743,6 @@
           text.value = value ?? "";
           const parsed = parseColor(value);
           picker.value = parsed || "#000000";
-          picker.disabled = !parsed && Boolean(value);
 
           picker.addEventListener("input", () => {
             text.value = picker.value;
@@ -2752,7 +2752,6 @@
           text.addEventListener("input", () => {
             const next = text.value.trim();
             const nextColor = parseColor(next);
-            picker.disabled = !nextColor && next !== "";
             if (nextColor) picker.value = nextColor;
             onUpdate(next);
           });
@@ -4172,6 +4171,21 @@
           afterGeometryChange();
         }
 
+        function clampViewport(viewport) {
+          if (!viewport) return viewport;
+          const [x, y, width, height] = state.viewBox;
+          const minVisible = Math.min(VIEWPORT_CLAMP_MARGIN, width, height);
+
+          const minX = x + minVisible - viewport.width;
+          const maxX = x + width - minVisible;
+          const minY = y + minVisible - viewport.height;
+          const maxY = y + height - minVisible;
+
+          viewport.x = Math.min(maxX, Math.max(minX, viewport.x));
+          viewport.y = Math.min(maxY, Math.max(minY, viewport.y));
+          return viewport;
+        }
+
         function moveViewport(event) {
           const drag = state.drag;
           if (!drag || drag.type !== "pan") return;
@@ -4181,6 +4195,7 @@
             drag.viewport.x - (event.clientX - drag.clientX) * scaleX;
           state.viewport.y =
             drag.viewport.y - (event.clientY - drag.clientY) * scaleY;
+          clampViewport(state.viewport);
           applyViewport();
           renderOverlay();
         }
@@ -5214,10 +5229,16 @@
             // Horizontal-only drag: scale font by sX. All other cases: sY.
             const textScale = hy === "center" ? sX : sY;
             el.setAttribute("font-size", fmt(Math.max(1, fs * textScale)));
-            const anchorX = (opts.symmetric || hx === "center")
-              ? ob.x + ob.w / 2
-              : hx === "right" ? ob.x : ob.x + ob.w;
-            el.setAttribute("x", fmt(anchorX + (orig("x") - anchorX) * textScale));
+            const anchorX =
+              opts.symmetric || hx === "center"
+                ? ob.x + ob.w / 2
+                : hx === "right"
+                  ? ob.x
+                  : ob.x + ob.w;
+            el.setAttribute(
+              "x",
+              fmt(anchorX + (orig("x") - anchorX) * textScale),
+            );
             el.setAttribute("y", fmt(mapY(orig("y"))));
           }
         }
