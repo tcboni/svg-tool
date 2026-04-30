@@ -1978,6 +1978,7 @@
         const NUDGE_STEP_PX = 1;
         const NUDGE_FAST_STEP_PX = 10;
         const ARC_MIN_RADIUS = 1;
+        const LOCALSTORAGE_KEY = "svgtool-state";
 
         const state = {
           tool: "select",
@@ -3763,27 +3764,38 @@
 
         function saveToStorage() {
           try {
-            localStorage.setItem("state", JSON.stringify({
-              svgContent: serializeSvg(),
-              fileName: els.fileNameInput.value,
-              showGrid: els.showGridToggle.checked,
-              snapToGrid: state.snapToGrid,
-              artboardColor: els.artboardColorPicker.value,
-            }));
+            localStorage.setItem(
+              LOCALSTORAGE_KEY,
+              JSON.stringify({
+                svgContent: serializeSvg(),
+                fileName: els.fileNameInput.value,
+                showGrid: els.showGridToggle.checked,
+                snapToGrid: state.snapToGrid,
+                artboardColor: els.artboardColorPicker.value,
+              }),
+            );
           } catch {}
         }
 
         function loadFromStorage() {
           let saved;
-          try { saved = JSON.parse(localStorage.getItem("state")); } catch {}
+          try {
+            saved = JSON.parse(localStorage.getItem(LOCALSTORAGE_KEY));
+          } catch {}
           if (!saved) return;
           if (saved.svgContent) {
-            try { importMarkup(saved.svgContent); } catch {}
+            try {
+              importMarkup(saved.svgContent);
+            } catch {}
           }
           if (saved.fileName) {
             els.fileNameInput.value = saved.fileName;
-            const base = saved.fileName.replace(/\.(svg|png|jpg|jpeg)$/i, "").trim();
-            els.fileNameDisplay.textContent = base ? base + ".svg" : "Untitled.svg";
+            const base = saved.fileName
+              .replace(/\.(svg|png|jpg|jpeg)$/i, "")
+              .trim();
+            els.fileNameDisplay.textContent = base
+              ? base + ".svg"
+              : "Untitled.svg";
           }
           const showGrid = saved.showGrid ?? true;
           els.showGridToggle.checked = showGrid;
@@ -4281,10 +4293,7 @@
           if (drag.handle.kind === "arc-rx") {
             const endX = segment.values[5];
             const endY = segment.values[6];
-            segment.values[0] = Math.max(
-              ARC_MIN_RADIUS,
-              Math.abs(pt.x - endX),
-            );
+            segment.values[0] = Math.max(ARC_MIN_RADIUS, Math.abs(pt.x - endX));
             state.selectedNode = {
               ...drag.handle,
               x: endX + segment.values[0],
@@ -4299,7 +4308,9 @@
             state.selectedNode = {
               ...drag.handle,
               x: endX,
-              y: endY + (segment.values[4] ? segment.values[1] : -segment.values[1]),
+              y:
+                endY +
+                (segment.values[4] ? segment.values[1] : -segment.values[1]),
             };
           } else {
             segment.values[drag.handle.xOffset] = pt.x;
@@ -5068,36 +5079,56 @@
           document.body.classList.add("dragging-canvas");
         }
 
-        function computeNewBox(sb, hx, hy, dx, dy) {
+        function computeNewBox(sb, hx, hy, dx, dy, opts = {}) {
           let { x, y, w, h } = sb;
+          const { proportional, symmetric } = opts;
           let nx = x,
             ny = y,
             nw = w,
             nh = h;
+
           if (hx === "left") {
-            nx = x + dx;
-            nw = w - dx;
-            if (nw < 1) {
-              nx = x + w - 1;
-              nw = 1;
-            }
+            nw = symmetric ? Math.max(1, w - 2 * dx) : Math.max(1, w - dx);
+            nx = symmetric ? x + (w - nw) / 2 : x + w - nw;
           } else if (hx === "right") {
-            nw = Math.max(1, w + dx);
+            nw = symmetric ? Math.max(1, w + 2 * dx) : Math.max(1, w + dx);
+            nx = symmetric ? x + (w - nw) / 2 : x;
           }
+
           if (hy === "top") {
-            ny = y + dy;
-            nh = h - dy;
-            if (nh < 1) {
-              ny = y + h - 1;
-              nh = 1;
-            }
+            nh = symmetric ? Math.max(1, h - 2 * dy) : Math.max(1, h - dy);
+            ny = symmetric ? y + (h - nh) / 2 : y + h - nh;
           } else if (hy === "bottom") {
-            nh = Math.max(1, h + dy);
+            nh = symmetric ? Math.max(1, h + 2 * dy) : Math.max(1, h + dy);
+            ny = symmetric ? y + (h - nh) / 2 : y;
           }
+
+          // Proportional constraint: only applies to corner handles
+          if (
+            proportional &&
+            hx !== "center" &&
+            hy !== "center" &&
+            w > 0 &&
+            h > 0
+          ) {
+            const sx = nw / w;
+            const sy = nh / h;
+            const s = Math.abs(sx - 1) >= Math.abs(sy - 1) ? sx : sy;
+            nw = Math.max(1, w * s);
+            nh = Math.max(1, h * s);
+            if (symmetric) {
+              nx = x + (w - nw) / 2;
+              ny = y + (h - nh) / 2;
+            } else {
+              nx = hx === "left" ? x + w - nw : x;
+              ny = hy === "top" ? y + h - nh : y;
+            }
+          }
+
           return { x: nx, y: ny, w: nw, h: nh };
         }
 
-        function resizeElement(el, ob, nb, sa) {
+        function resizeElement(el, ob, nb, sa, hx, hy, opts = {}) {
           const tag = el.tagName.toLowerCase();
           const sX = ob.w > 0 ? nb.w / ob.w : 1;
           const sY = ob.h > 0 ? nb.h / ob.h : 1;
@@ -5117,16 +5148,15 @@
             const hChanged = nb.h !== ob.h;
             let cx, cy, r;
             if (wChanged && hChanged) {
-              // Corner handle: anchor the opposite two edges so they don't drift.
-              // nb.x === ob.x means the left edge is fixed (right handle moved).
-              // nb.y === ob.y means the top edge is fixed (bottom handle moved).
-              const leftFixed = nb.x === ob.x;
-              const topFixed = nb.y === ob.y;
               r = Math.min(nb.w, nb.h) / 2;
-              cx = leftFixed ? ob.x + r : ob.x + ob.w - r;
-              cy = topFixed ? ob.y + r : ob.y + ob.h - r;
+              if (opts.symmetric) {
+                cx = ob.x + ob.w / 2;
+                cy = ob.y + ob.h / 2;
+              } else {
+                cx = hx === "right" ? ob.x + r : ob.x + ob.w - r;
+                cy = hy === "bottom" ? ob.y + r : ob.y + ob.h - r;
+              }
             } else {
-              // Edge handle: the center on the untouched axis stays put naturally.
               r = !hChanged ? nb.w / 2 : nb.h / 2;
               cx = nb.x + nb.w / 2;
               cy = nb.y + nb.h / 2;
@@ -5181,20 +5211,44 @@
             el.setAttribute("d", serializePath(segs));
           } else if (tag === "text") {
             const fs = parseFloat(sa["font-size"] || 16);
-            el.setAttribute("font-size", fmt(Math.max(1, fs * sY)));
-            el.setAttribute("x", fmt(mapX(orig("x"))));
+            // Horizontal-only drag: scale font by sX. All other cases: sY.
+            const textScale = hy === "center" ? sX : sY;
+            el.setAttribute("font-size", fmt(Math.max(1, fs * textScale)));
+            const anchorX = (opts.symmetric || hx === "center")
+              ? ob.x + ob.w / 2
+              : hx === "right" ? ob.x : ob.x + ob.w;
+            el.setAttribute("x", fmt(anchorX + (orig("x") - anchorX) * textScale));
             el.setAttribute("y", fmt(mapY(orig("y"))));
           }
         }
 
-        function updateResize(rawPoint) {
+        function updateResize(rawPoint, event) {
           const drag = state.drag;
           if (!drag || drag.type !== "resize") return;
           const pt = snapPoint(rawPoint);
           const dx = pt.x - drag.startPoint.x;
           const dy = pt.y - drag.startPoint.y;
-          const newBox = computeNewBox(drag.startBox, drag.hx, drag.hy, dx, dy);
-          resizeElement(drag.el, drag.startBox, newBox, drag.startAttrs);
+          const opts = {
+            proportional: event?.shiftKey,
+            symmetric: event?.altKey,
+          };
+          const newBox = computeNewBox(
+            drag.startBox,
+            drag.hx,
+            drag.hy,
+            dx,
+            dy,
+            opts,
+          );
+          resizeElement(
+            drag.el,
+            drag.startBox,
+            newBox,
+            drag.startAttrs,
+            drag.hx,
+            drag.hy,
+            opts,
+          );
           afterGeometryChange();
         }
 
@@ -5371,7 +5425,7 @@
           if (state.drag?.type === "move-node") moveNode(point, event);
           if (state.drag?.type === "draw-shape") updateShapeDrag(point);
           if (state.drag?.type === "pan") moveViewport(event);
-          if (state.drag?.type === "resize") updateResize(point);
+          if (state.drag?.type === "resize") updateResize(point, event);
           if (state.drag?.type === "crop-draw") {
             state.drag.end = point;
             renderCropOverlay();
