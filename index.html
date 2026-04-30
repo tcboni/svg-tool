@@ -2608,7 +2608,9 @@
           const tag = el.tagName.toLowerCase();
           const box = safeBBox(el);
           const id = el.getAttribute("id") || "(none)";
-          els.selectionInfo.innerHTML = `<strong>&lt;${tag}&gt;</strong><br>ID: ${escapeHtml(id)}<br>Bounds: ${fmt(box.x)}, ${fmt(box.y)} · ${fmt(box.width)} × ${fmt(box.height)}`;
+          const className = (el.getAttribute("class") || "").trim();
+          const idLine = `ID: ${escapeHtml(id)}${className ? ` · Class: ${escapeHtml(className)}` : ""}`;
+          els.selectionInfo.innerHTML = `<strong>&lt;${tag}&gt;</strong><br>${idLine}<br>Bounds: ${fmt(box.x)}, ${fmt(box.y)} · ${fmt(box.width)} × ${fmt(box.height)}`;
         }
 
         function canGroupSelection() {
