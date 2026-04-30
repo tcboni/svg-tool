@@ -1976,6 +1976,12 @@
       <button class="context-item" data-action="paste" id="contextPasteItem">
         Paste <span class="context-kbd">⌘V</span>
       </button>
+      <button class="context-item" data-action="duplicate">
+        Duplicate <span class="context-kbd">⌘D</span>
+      </button>
+      <button class="context-item" data-action="delete">
+        Delete <span class="context-kbd">Del</span>
+      </button>
       <div class="context-sep"></div>
       <button class="context-item" data-action="bring-front">
         Bring to Front
@@ -5342,6 +5348,12 @@
               break;
             case "paste":
               pasteElement();
+              break;
+            case "duplicate":
+              duplicateSelectedElement();
+              break;
+            case "delete":
+              deleteSelectedElement();
               break;
             case "bring-front":
               if (!el) return;
