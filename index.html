@@ -3751,6 +3751,7 @@
           state.history.push(snapshot);
           state.redo = [];
           if (state.history.length > 100) state.history.shift();
+          saveToStorage();
         }
 
         function resetHistory() {
@@ -3758,6 +3759,44 @@
           state.history = [serializeSvg()];
           state.redo = [];
           state.historyReady = true;
+        }
+
+        function saveToStorage() {
+          try {
+            localStorage.setItem("state", JSON.stringify({
+              svgContent: serializeSvg(),
+              fileName: els.fileNameInput.value,
+              showGrid: els.showGridToggle.checked,
+              snapToGrid: state.snapToGrid,
+              artboardColor: els.artboardColorPicker.value,
+            }));
+          } catch {}
+        }
+
+        function loadFromStorage() {
+          let saved;
+          try { saved = JSON.parse(localStorage.getItem("state")); } catch {}
+          if (!saved) return;
+          if (saved.svgContent) {
+            try { importMarkup(saved.svgContent); } catch {}
+          }
+          if (saved.fileName) {
+            els.fileNameInput.value = saved.fileName;
+            const base = saved.fileName.replace(/\.(svg|png|jpg|jpeg)$/i, "").trim();
+            els.fileNameDisplay.textContent = base ? base + ".svg" : "Untitled.svg";
+          }
+          const showGrid = saved.showGrid ?? true;
+          els.showGridToggle.checked = showGrid;
+          els.artboardGrid.style.display = showGrid ? "" : "none";
+          els.canvas.classList.toggle("no-grid", !showGrid);
+          if (saved.snapToGrid !== undefined) {
+            state.snapToGrid = saved.snapToGrid;
+            els.snapToGridToggle.checked = saved.snapToGrid;
+          }
+          if (saved.artboardColor) {
+            els.artboardColorPicker.value = saved.artboardColor;
+            els.artboard.style.fill = saved.artboardColor;
+          }
         }
 
         function restoreSnapshot(snapshot) {
@@ -5485,12 +5524,15 @@
             const on = els.showGridToggle.checked;
             els.artboardGrid.style.display = on ? "" : "none";
             els.canvas.classList.toggle("no-grid", !on);
+            saveToStorage();
           });
           els.snapToGridToggle.addEventListener("change", () => {
             state.snapToGrid = els.snapToGridToggle.checked;
+            saveToStorage();
           });
           els.artboardColorPicker.addEventListener("input", () => {
             els.artboard.style.fill = els.artboardColorPicker.value;
+            saveToStorage();
           });
           els.zoomInBtn.addEventListener("click", () => zoomCanvas(1.2));
           els.zoomOutBtn.addEventListener("click", () => zoomCanvas(1 / 1.2));
@@ -5551,6 +5593,7 @@
               ? raw.replace(/\.(svg|png|jpg|jpeg)$/i, "") + ".svg"
               : "Untitled.svg";
             els.fileNameDisplay.textContent = name;
+            saveToStorage();
           });
 
           window.addEventListener("dragover", (event) => {
@@ -5666,6 +5709,7 @@
           setViewBox(state.viewBox);
           attachEvents();
           setTool("select");
+          loadFromStorage();
           renderInspector();
           refreshMarkup();
           resetHistory();
