@@ -5432,10 +5432,18 @@
             keys.forEach((k) => {
               snap[k] = el.getAttribute(k);
             });
-          if (tag === "line") save("x1", "y1", "x2", "y2");
+          if (tag === "rect" || tag === "image") save("x", "y", "width", "height");
+          else if (tag === "circle") save("cx", "cy", "r");
+          else if (tag === "ellipse") save("cx", "cy", "rx", "ry");
+          else if (tag === "line") save("x1", "y1", "x2", "y2");
           else if (tag === "polygon" || tag === "polyline") save("points");
           else if (tag === "path") save("d");
           else if (tag === "text") save("x", "y", "font-size");
+          else if (tag === "g") {
+            snap._children = Array.from(el.children).map((child) =>
+              captureAttrs(child),
+            );
+          }
           return snap;
         }
 
@@ -5600,6 +5608,71 @@
               fmt(anchorX + (orig("x") - anchorX) * textScale),
             );
             el.setAttribute("y", fmt(mapY(orig("y"))));
+          } else if (tag === "g") {
+            Array.from(el.children).forEach((child, i) => {
+              const csa = (sa._children || [])[i] || {};
+              const co = (a) => parseFloat(csa[a] || 0);
+              const ctag = child.tagName.toLowerCase();
+              if (ctag === "rect" || ctag === "image") {
+                child.setAttribute("x", fmt(mapX(co("x"))));
+                child.setAttribute("y", fmt(mapY(co("y"))));
+                child.setAttribute("width", fmt(Math.max(1, co("width") * sX)));
+                child.setAttribute("height", fmt(Math.max(1, co("height") * sY)));
+              } else if (ctag === "circle") {
+                child.setAttribute("cx", fmt(mapX(co("cx"))));
+                child.setAttribute("cy", fmt(mapY(co("cy"))));
+                child.setAttribute("r", fmt(Math.max(0.1, co("r") * Math.sqrt(sX * sY))));
+              } else if (ctag === "ellipse") {
+                child.setAttribute("cx", fmt(mapX(co("cx"))));
+                child.setAttribute("cy", fmt(mapY(co("cy"))));
+                child.setAttribute("rx", fmt(Math.max(0.1, co("rx") * sX)));
+                child.setAttribute("ry", fmt(Math.max(0.1, co("ry") * sY)));
+              } else if (ctag === "line") {
+                child.setAttribute("x1", fmt(mapX(co("x1"))));
+                child.setAttribute("y1", fmt(mapY(co("y1"))));
+                child.setAttribute("x2", fmt(mapX(co("x2"))));
+                child.setAttribute("y2", fmt(mapY(co("y2"))));
+              } else if (ctag === "polygon" || ctag === "polyline") {
+                const pts = (csa.points || "").trim().split(/\s+/).map((pair) => {
+                  const [px, py] = pair.split(",").map(Number);
+                  return `${fmt(mapX(px))},${fmt(mapY(py))}`;
+                });
+                child.setAttribute("points", pts.join(" "));
+              } else if (ctag === "path") {
+                const segs = parsePath(csa.d || "");
+                segs.forEach((seg) => {
+                  if (seg.cmd === "M" || seg.cmd === "L") {
+                    seg.values[0] = mapX(seg.values[0]);
+                    seg.values[1] = mapY(seg.values[1]);
+                  } else if (seg.cmd === "C") {
+                    seg.values[0] = mapX(seg.values[0]);
+                    seg.values[1] = mapY(seg.values[1]);
+                    seg.values[2] = mapX(seg.values[2]);
+                    seg.values[3] = mapY(seg.values[3]);
+                    seg.values[4] = mapX(seg.values[4]);
+                    seg.values[5] = mapY(seg.values[5]);
+                  } else if (seg.cmd === "Q") {
+                    seg.values[0] = mapX(seg.values[0]);
+                    seg.values[1] = mapY(seg.values[1]);
+                    seg.values[2] = mapX(seg.values[2]);
+                    seg.values[3] = mapY(seg.values[3]);
+                  } else if (seg.cmd === "A") {
+                    seg.values[0] = Math.max(0.1, seg.values[0] * sX);
+                    seg.values[1] = Math.max(0.1, seg.values[1] * sY);
+                    seg.values[5] = mapX(seg.values[5]);
+                    seg.values[6] = mapY(seg.values[6]);
+                  }
+                });
+                child.setAttribute("d", serializePath(segs));
+              } else if (ctag === "text") {
+                const fs = parseFloat(csa["font-size"] || 16);
+                child.setAttribute("font-size", fmt(Math.max(1, fs * sY)));
+                child.setAttribute("x", fmt(mapX(co("x"))));
+                child.setAttribute("y", fmt(mapY(co("y"))));
+              } else if (ctag === "g") {
+                resizeElement(child, ob, nb, csa, hx, hy, opts);
+              }
+            });
           }
         }
 
