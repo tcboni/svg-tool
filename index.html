@@ -2092,11 +2092,6 @@
           crop: "Crop",
         };
 
-        const defaultStroke = "#000000";
-        const defaultFill = "#ffffff";
-        const defaultStrokeWidth = 1;
-        const defaultTextColor = "#000000";
-
         const propertyMap = {
           rect: ["x", "y", "width", "height", "rx", "ry"],
           circle: ["cx", "cy", "r"],
@@ -3907,9 +3902,9 @@
 
         function startShape(tool, point) {
           const common = {
-            fill: tool === "line" ? "none" : defaultFill,
-            stroke: defaultStroke,
-            "stroke-width": defaultStrokeWidth,
+            fill: tool === "line" ? "none" : "#ffffff",
+            stroke: "#000000",
+            "stroke-width": 1,
             "stroke-linecap": "round",
             "stroke-linejoin": "round",
           };
@@ -3961,7 +3956,7 @@
             el = createSvgElement("text", {
               x: point.x,
               y: point.y,
-              fill: defaultTextColor,
+              fill: "#000000",
               "font-size": 38,
               "font-family": "Inter, system-ui, sans-serif",
               "font-weight": 600,
@@ -4897,8 +4892,8 @@
             const path = createSvgElement("path", {
               d: `M ${fmt(point.x)} ${fmt(point.y)}`,
               fill: "none",
-              stroke: defaultStroke,
-              "stroke-width": defaultStrokeWidth,
+              stroke: "#000000",
+              "stroke-width": 1,
               "stroke-linecap": "round",
               "stroke-linejoin": "round",
             });
@@ -4922,9 +4917,9 @@
           if (!state.drawing) {
             selectElement(null);
             const el = createSvgElement(tool, {
-              fill: tool === "polygon" ? defaultFill : "none",
-              stroke: defaultStroke,
-              "stroke-width": defaultStrokeWidth,
+              fill: tool === "polygon" ? "#ffffff" : "none",
+              stroke: "#000000",
+              "stroke-width": 1,
               "stroke-linecap": "round",
               "stroke-linejoin": "round",
               points: `${fmt(point.x)},${fmt(point.y)}`,
