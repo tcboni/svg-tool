@@ -23,6 +23,8 @@
         --accent-2: #f3f4f6;
         --danger: #ff627f;
         --shadow: none;
+        --rotate-cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg stroke='white' stroke-width='3.5'%3E%3Cpath d='M20 12a8 8 0 1 1-2.34-5.66'/%3E%3Cpolyline points='20 3 20 8 15 8'/%3E%3C/g%3E%3Cg stroke='black' stroke-width='1.6'%3E%3Cpath d='M20 12a8 8 0 1 1-2.34-5.66'/%3E%3Cpolyline points='20 3 20 8 15 8'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")
+          12 12;
         font-family:
           Inter,
           ui-sans-serif,
@@ -493,6 +495,21 @@
         vector-effect: non-scaling-stroke;
       }
 
+      .rotate-zone {
+        fill: none;
+        stroke: transparent;
+        pointer-events: stroke;
+      }
+
+      .rotate-zone,
+      body.rotating-canvas * {
+        cursor: var(--rotate-cursor), grab !important;
+      }
+
+      body.resizing-canvas * {
+        cursor: var(--resize-cursor) !important;
+      }
+
       .context-menu {
         position: fixed;
         z-index: 200;
@@ -575,11 +592,41 @@
 
       .selection-box {
         fill: none;
-        stroke: rgba(0, 0, 0, 0.75);
+        stroke: rgba(0, 0, 0, 0.85);
         stroke-width: 1.4;
-        stroke-dasharray: 5 4;
+        stroke-dasharray: 5 5;
         vector-effect: non-scaling-stroke;
         pointer-events: none;
+        animation: marching-ants-black 4s linear infinite;
+      }
+
+      .selection-box-bg {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.9);
+        stroke-width: 1.4;
+        stroke-dasharray: 5 5;
+        stroke-dashoffset: 5;
+        vector-effect: non-scaling-stroke;
+        pointer-events: none;
+        animation: marching-ants-white 4s linear infinite;
+      }
+
+      @keyframes marching-ants-black {
+        from {
+          stroke-dashoffset: 0;
+        }
+        to {
+          stroke-dashoffset: -10;
+        }
+      }
+
+      @keyframes marching-ants-white {
+        from {
+          stroke-dashoffset: 5;
+        }
+        to {
+          stroke-dashoffset: -5;
+        }
       }
 
       .handle-line {
@@ -2575,7 +2622,7 @@
           let maxX = -Infinity;
           let maxY = -Infinity;
           elements.forEach((el) => {
-            const box = safeBBox(el);
+            const box = visualBBox(el);
             minX = Math.min(minX, box.x);
             minY = Math.min(minY, box.y);
             maxX = Math.max(maxX, box.x + box.width);
@@ -2603,7 +2650,7 @@
           }
           els.selectionInfo.className = "selectionInfo";
           const tag = el.tagName.toLowerCase();
-          const box = safeBBox(el);
+          const box = visualBBox(el);
           const id = el.getAttribute("id") || "(none)";
           const className = (el.getAttribute("class") || "").trim();
           const idLine = `ID: ${escapeHtml(id)}${className ? ` · Class: ${escapeHtml(className)}` : ""}`;
@@ -3410,15 +3457,22 @@
           }
           const overlayScale = overlayUnitsPerPixel();
           const box =
-            selected.length > 1 ? selectionBounds(selected) : safeBBox(el);
+            selected.length > 1 ? selectionBounds(selected) : visualBBox(el);
           if (box.width || box.height) {
+            const boxAttrs = {
+              x: box.x,
+              y: box.y,
+              width: box.width,
+              height: box.height,
+            };
             els.overlayLayer.append(
               createSvgElement("rect", {
+                class: "selection-box-bg",
+                ...boxAttrs,
+              }),
+              createSvgElement("rect", {
                 class: "selection-box",
-                x: box.x,
-                y: box.y,
-                width: box.width,
-                height: box.height,
+                ...boxAttrs,
               }),
             );
 
@@ -3429,6 +3483,19 @@
                 by = box.y,
                 bw = box.width,
                 bh = box.height;
+              const rotBandX = 12 * overlayScale.x;
+              const rotBandY = 12 * overlayScale.y;
+              const rotBand = (rotBandX + rotBandY) / 2;
+              els.overlayLayer.append(
+                createSvgElement("rect", {
+                  class: "rotate-zone",
+                  x: fmt(bx - rotBandX / 2),
+                  y: fmt(by - rotBandY / 2),
+                  width: fmt(bw + rotBandX),
+                  height: fmt(bh + rotBandY),
+                  "stroke-width": fmt(rotBand),
+                }),
+              );
               [
                 { hx: "left", hy: "top", cx: bx, cy: by, cur: "nw-resize" },
                 {
@@ -3840,6 +3907,39 @@
           } catch {
             return { x: 0, y: 0, width: 0, height: 0 };
           }
+        }
+
+        function visualBBox(el) {
+          const local = safeBBox(el);
+          if (!el.hasAttribute || !el.hasAttribute("transform")) return local;
+          let matrix = null;
+          try {
+            matrix = el.transform?.baseVal?.consolidate()?.matrix || null;
+          } catch {}
+          if (!matrix) return local;
+          const corners = [
+            [local.x, local.y],
+            [local.x + local.width, local.y],
+            [local.x + local.width, local.y + local.height],
+            [local.x, local.y + local.height],
+          ].map(([x, y]) => {
+            const pt = els.canvas.createSVGPoint();
+            pt.x = x;
+            pt.y = y;
+            return pt.matrixTransform(matrix);
+          });
+          const xs = corners.map((p) => p.x);
+          const ys = corners.map((p) => p.y);
+          const minX = Math.min(...xs);
+          const maxX = Math.max(...xs);
+          const minY = Math.min(...ys);
+          const maxY = Math.max(...ys);
+          return {
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+          };
         }
 
         function escapeHtml(value) {
@@ -4467,6 +4567,26 @@
         }
 
         function translateElement(el, dx, dy) {
+          // dx, dy are in the element's PARENT coordinate system. If the element
+          // has its own transform (e.g. a rotation), inverse-apply the linear
+          // part to express the same visible motion as a delta in LOCAL coords.
+          let lx = dx;
+          let ly = dy;
+          if (el.hasAttribute && el.hasAttribute("transform")) {
+            let matrix = null;
+            try {
+              matrix = el.transform?.baseVal?.consolidate()?.matrix || null;
+            } catch {}
+            if (matrix) {
+              const { a, b, c, d } = matrix;
+              const det = a * d - b * c;
+              if (Math.abs(det) > 1e-12) {
+                lx = (d * dx - c * dy) / det;
+                ly = (-b * dx + a * dy) / det;
+              }
+            }
+          }
+
           const tag = el.tagName.toLowerCase();
           const add = (attr, delta) => {
             el.setAttribute(
@@ -4477,7 +4597,7 @@
 
           if (tag === "g") {
             Array.from(el.children).forEach((child) =>
-              translateElement(child, dx, dy),
+              translateElement(child, lx, ly),
             );
           } else if (
             tag === "rect" ||
@@ -4485,19 +4605,19 @@
             tag === "text" ||
             tag === "use"
           ) {
-            add("x", dx);
-            add("y", dy);
+            add("x", lx);
+            add("y", ly);
           } else if (tag === "circle" || tag === "ellipse") {
-            add("cx", dx);
-            add("cy", dy);
+            add("cx", lx);
+            add("cy", ly);
           } else if (tag === "line") {
-            add("x1", dx);
-            add("y1", dy);
-            add("x2", dx);
-            add("y2", dy);
+            add("x1", lx);
+            add("y1", ly);
+            add("x2", lx);
+            add("y2", ly);
           } else if (tag === "path") {
             const segments = parsePath(el.getAttribute("d") || "");
-            shiftPath(segments, dx, dy);
+            shiftPath(segments, lx, ly);
             el.setAttribute("d", serializePath(segments));
           } else if (tag === "polyline" || tag === "polygon") {
             const points = (el.getAttribute("points") || "")
@@ -4506,7 +4626,7 @@
               .map((pair) => {
                 const [x, y] = pair.split(",").map(Number);
                 return Number.isFinite(x) && Number.isFinite(y)
-                  ? `${fmt(x + dx)},${fmt(y + dy)}`
+                  ? `${fmt(x + lx)},${fmt(y + ly)}`
                   : pair;
               });
             el.setAttribute("points", points.join(" "));
@@ -4514,7 +4634,7 @@
             const existing = el.getAttribute("transform") || "";
             el.setAttribute(
               "transform",
-              `${existing} translate(${fmt(dx)} ${fmt(dy)})`.trim(),
+              `${existing} translate(${fmt(lx)} ${fmt(ly)})`.trim(),
             );
           }
         }
@@ -5447,6 +5567,12 @@
           return snap;
         }
 
+        function resizeCursorFor(hx, hy) {
+          const v = hy === "top" ? "n" : hy === "bottom" ? "s" : "";
+          const h = hx === "left" ? "w" : hx === "right" ? "e" : "";
+          return `${v}${h}-resize`;
+        }
+
         function startResizeDrag(event, hx, hy) {
           if (!state.selected) return;
           const box = safeBBox(state.selected);
@@ -5459,7 +5585,11 @@
             startBox: { x: box.x, y: box.y, w: box.width, h: box.height },
             startAttrs: captureAttrs(state.selected),
           };
-          document.body.classList.add("dragging-canvas");
+          document.body.style.setProperty(
+            "--resize-cursor",
+            resizeCursorFor(hx, hy),
+          );
+          document.body.classList.add("dragging-canvas", "resizing-canvas");
         }
 
         function computeNewBox(sb, hx, hy, dx, dy, opts = {}) {
@@ -5706,6 +5836,247 @@
           afterGeometryChange();
         }
 
+        const POINT_BASED_ROTATION_TAGS = new Set([
+          "path",
+          "polyline",
+          "polygon",
+          "line",
+        ]);
+
+        function startRotateDrag(event) {
+          if (!state.selected) return;
+          const el = state.selected;
+          const tag = el.tagName.toLowerCase();
+          const pointBased = POINT_BASED_ROTATION_TAGS.has(tag);
+          // For point-based shapes we rewrite vertices instead of stacking a
+          // rotate() transform — bake any pre-existing transform into the
+          // geometry first so local space = canvas space.
+          if (pointBased && el.hasAttribute("transform")) {
+            bakeTransformIntoPoints(el);
+          }
+          const localBox = safeBBox(el);
+          if (!localBox.width && !localBox.height) return;
+          const localCenter = {
+            x: localBox.x + localBox.width / 2,
+            y: localBox.y + localBox.height / 2,
+          };
+          const visualCenter = applyOwnTransform(el, localCenter);
+          const startPoint = pointFromEvent(event);
+          const startAngle = Math.atan2(
+            startPoint.y - visualCenter.y,
+            startPoint.x - visualCenter.x,
+          );
+          state.drag = {
+            type: "rotate",
+            el,
+            pointBased,
+            localCenter,
+            visualCenter,
+            startAngle,
+            baseTransform: pointBased ? "" : el.getAttribute("transform") || "",
+            startSnapshot: pointBased ? capturePointSnapshot(el) : null,
+            moved: false,
+          };
+        }
+
+        function applyOwnTransform(el, point) {
+          let matrix = null;
+          try {
+            matrix = el.transform?.baseVal?.consolidate()?.matrix || null;
+          } catch {}
+          if (!matrix) return { x: point.x, y: point.y };
+          const pt = els.canvas.createSVGPoint();
+          pt.x = point.x;
+          pt.y = point.y;
+          const r = pt.matrixTransform(matrix);
+          return { x: r.x, y: r.y };
+        }
+
+        function capturePointSnapshot(el) {
+          const tag = el.tagName.toLowerCase();
+          if (tag === "line") {
+            return {
+              tag,
+              x1: parseFloat(el.getAttribute("x1")) || 0,
+              y1: parseFloat(el.getAttribute("y1")) || 0,
+              x2: parseFloat(el.getAttribute("x2")) || 0,
+              y2: parseFloat(el.getAttribute("y2")) || 0,
+            };
+          }
+          if (tag === "polyline" || tag === "polygon") {
+            return { tag, points: el.getAttribute("points") || "" };
+          }
+          if (tag === "path") {
+            return { tag, d: el.getAttribute("d") || "" };
+          }
+          return null;
+        }
+
+        function applyPointRotation(el, snap, center, angle) {
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          const rot = (x, y) => ({
+            x: center.x + (x - center.x) * cos - (y - center.y) * sin,
+            y: center.y + (x - center.x) * sin + (y - center.y) * cos,
+          });
+          if (snap.tag === "line") {
+            const a = rot(snap.x1, snap.y1);
+            const b = rot(snap.x2, snap.y2);
+            el.setAttribute("x1", fmt(a.x));
+            el.setAttribute("y1", fmt(a.y));
+            el.setAttribute("x2", fmt(b.x));
+            el.setAttribute("y2", fmt(b.y));
+            return;
+          }
+          if (snap.tag === "polyline" || snap.tag === "polygon") {
+            const pts = snap.points
+              .trim()
+              .split(/\s+/)
+              .map((pair) => {
+                const [px, py] = pair.split(",").map(Number);
+                if (!Number.isFinite(px) || !Number.isFinite(py)) return pair;
+                const r = rot(px, py);
+                return `${fmt(r.x)},${fmt(r.y)}`;
+              });
+            el.setAttribute("points", pts.join(" "));
+            return;
+          }
+          if (snap.tag === "path") {
+            const segs = parsePath(snap.d);
+            const deg = (angle * 180) / Math.PI;
+            segs.forEach((seg) => {
+              if (seg.cmd === "M" || seg.cmd === "L") {
+                const p = rot(seg.values[0], seg.values[1]);
+                seg.values[0] = p.x;
+                seg.values[1] = p.y;
+              } else if (seg.cmd === "C") {
+                [0, 2, 4].forEach((i) => {
+                  const p = rot(seg.values[i], seg.values[i + 1]);
+                  seg.values[i] = p.x;
+                  seg.values[i + 1] = p.y;
+                });
+              } else if (seg.cmd === "Q") {
+                [0, 2].forEach((i) => {
+                  const p = rot(seg.values[i], seg.values[i + 1]);
+                  seg.values[i] = p.x;
+                  seg.values[i + 1] = p.y;
+                });
+              } else if (seg.cmd === "A") {
+                seg.values[2] = (((seg.values[2] + deg) % 360) + 360) % 360;
+                const p = rot(seg.values[5], seg.values[6]);
+                seg.values[5] = p.x;
+                seg.values[6] = p.y;
+              }
+            });
+            el.setAttribute("d", serializePath(segs));
+          }
+        }
+
+        function bakeTransformIntoPoints(el) {
+          let matrix = null;
+          try {
+            matrix = el.transform?.baseVal?.consolidate()?.matrix || null;
+          } catch {}
+          el.removeAttribute("transform");
+          if (!matrix) return;
+          const map = (x, y) => {
+            const pt = els.canvas.createSVGPoint();
+            pt.x = x;
+            pt.y = y;
+            return pt.matrixTransform(matrix);
+          };
+          const tag = el.tagName.toLowerCase();
+          if (tag === "line") {
+            const a = map(
+              parseFloat(el.getAttribute("x1")) || 0,
+              parseFloat(el.getAttribute("y1")) || 0,
+            );
+            const b = map(
+              parseFloat(el.getAttribute("x2")) || 0,
+              parseFloat(el.getAttribute("y2")) || 0,
+            );
+            el.setAttribute("x1", fmt(a.x));
+            el.setAttribute("y1", fmt(a.y));
+            el.setAttribute("x2", fmt(b.x));
+            el.setAttribute("y2", fmt(b.y));
+          } else if (tag === "polyline" || tag === "polygon") {
+            const pts = (el.getAttribute("points") || "")
+              .trim()
+              .split(/\s+/)
+              .map((pair) => {
+                const [px, py] = pair.split(",").map(Number);
+                if (!Number.isFinite(px) || !Number.isFinite(py)) return pair;
+                const p = map(px, py);
+                return `${fmt(p.x)},${fmt(p.y)}`;
+              });
+            el.setAttribute("points", pts.join(" "));
+          } else if (tag === "path") {
+            const segs = parsePath(el.getAttribute("d") || "");
+            const rotDeg =
+              (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI;
+            segs.forEach((seg) => {
+              if (seg.cmd === "M" || seg.cmd === "L") {
+                const p = map(seg.values[0], seg.values[1]);
+                seg.values[0] = p.x;
+                seg.values[1] = p.y;
+              } else if (seg.cmd === "C") {
+                [0, 2, 4].forEach((i) => {
+                  const p = map(seg.values[i], seg.values[i + 1]);
+                  seg.values[i] = p.x;
+                  seg.values[i + 1] = p.y;
+                });
+              } else if (seg.cmd === "Q") {
+                [0, 2].forEach((i) => {
+                  const p = map(seg.values[i], seg.values[i + 1]);
+                  seg.values[i] = p.x;
+                  seg.values[i + 1] = p.y;
+                });
+              } else if (seg.cmd === "A") {
+                seg.values[2] =
+                  (((seg.values[2] + rotDeg) % 360) + 360) % 360;
+                const p = map(seg.values[5], seg.values[6]);
+                seg.values[5] = p.x;
+                seg.values[6] = p.y;
+              }
+            });
+            el.setAttribute("d", serializePath(segs));
+          }
+        }
+
+        function updateRotate(rawPoint, event) {
+          const drag = state.drag;
+          if (!drag || drag.type !== "rotate") return;
+          if (!drag.moved) {
+            drag.moved = true;
+            document.body.classList.add("dragging-canvas", "rotating-canvas");
+          }
+          const currentAngle = Math.atan2(
+            rawPoint.y - drag.visualCenter.y,
+            rawPoint.x - drag.visualCenter.x,
+          );
+          let angle = currentAngle - drag.startAngle;
+          if (event?.shiftKey) {
+            const step = Math.PI / 12;
+            angle = Math.round(angle / step) * step;
+          }
+          if (drag.pointBased) {
+            applyPointRotation(
+              drag.el,
+              drag.startSnapshot,
+              drag.localCenter,
+              angle,
+            );
+          } else {
+            const deg = (angle * 180) / Math.PI;
+            const rotateTerm = `rotate(${fmt(deg)} ${fmt(drag.localCenter.x)} ${fmt(drag.localCenter.y)})`;
+            const tr = drag.baseTransform
+              ? `${drag.baseTransform} ${rotateTerm}`
+              : rotateTerm;
+            drag.el.setAttribute("transform", tr);
+          }
+          afterGeometryChange();
+        }
+
         function showContextMenu(x, y) {
           els.contextPasteItem.disabled = !state.clipboard.length;
           const groupItem = els.contextMenu.querySelector(
@@ -5888,6 +6259,13 @@
             );
             return;
           }
+          const rotateTarget =
+            state.tool === "select" && event.target.closest?.(".rotate-zone");
+          if (rotateTarget) {
+            event.preventDefault();
+            startRotateDrag(event);
+            return;
+          }
           const overlayTarget = event.target.closest?.(
             ".node-handle, .ctrl-handle",
           );
@@ -5952,6 +6330,7 @@
           if (state.drag?.type === "draw-shape") updateShapeDrag(point);
           if (state.drag?.type === "pan") moveViewport(event);
           if (state.drag?.type === "resize") updateResize(point, event);
+          if (state.drag?.type === "rotate") updateRotate(point, event);
           if (state.drag?.type === "marquee-select") {
             state.drag.end = point;
             renderOverlay();
@@ -5980,7 +6359,12 @@
           state.drag = null;
           renderOverlay();
           els.canvas.classList.remove("grabbing");
-          document.body.classList.remove("dragging-canvas");
+          document.body.classList.remove(
+            "dragging-canvas",
+            "rotating-canvas",
+            "resizing-canvas",
+          );
+          document.body.style.removeProperty("--resize-cursor");
         }
 
         function attachEvents() {
@@ -6288,6 +6672,12 @@
               else groupSelectedElements();
               return;
             }
+            if (mod && key === "a") {
+              event.preventDefault();
+              const all = Array.from(els.artLayer.children);
+              setSelection(all, all[all.length - 1] || null);
+              return;
+            }
             if (key === "v") setTool("select");
             if (key === "h") setTool("move");
             if (key === "p") setTool("pen");
@@ -6314,7 +6704,33 @@
           });
         }
 
+        function isMacPlatform() {
+          const p =
+            navigator.userAgentData?.platform || navigator.platform || "";
+          return /mac|iphone|ipad|ipod/i.test(p);
+        }
+
+        function localizeShortcutHints() {
+          if (isMacPlatform()) return;
+          const swap = (s) =>
+            s.replaceAll("⌘", "Ctrl+").replaceAll("⇧", "Shift+");
+          const walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT,
+          );
+          const nodes = [];
+          while (walker.nextNode()) nodes.push(walker.currentNode);
+          nodes.forEach((node) => {
+            if (/[⌘⇧]/.test(node.nodeValue)) node.nodeValue = swap(node.nodeValue);
+          });
+          document.querySelectorAll("[data-tip]").forEach((el) => {
+            const v = el.getAttribute("data-tip");
+            if (v && /[⌘⇧]/.test(v)) el.setAttribute("data-tip", swap(v));
+          });
+        }
+
         function init() {
+          localizeShortcutHints();
           setViewBox(state.viewBox);
           attachEvents();
           setTool("select");
